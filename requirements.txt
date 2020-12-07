@@ -1,0 +1,6 @@
+pymongo==3.11.0
+watchdog==0.10.4
+numpy==1.19.4
+jikanpy==4.2.2
+requests==2.24.0
+python_json_logger==2.0.1
