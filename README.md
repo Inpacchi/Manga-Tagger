@@ -1,3 +1,5 @@
+[![Gitter](https://badges.gitter.im/Manga-Tagger/community.svg)](https://gitter.im/Manga-Tagger/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 # Manga Tagger
 
 A tool to rename and write metadata to digital manga chapters
@@ -84,42 +86,51 @@ db.createUser({
 	  * default: 1
 * logger
   * logging_level - Can be set to "info" or "debug"
-    * default: "info"
+    	* default: "info"
   * log_dir - Set the default location of the logs folder
-    * default: "logs" **(recommended)**
+    	* default: "logs" **(recommended)**
   * max_size - Set the maximum size of a log file (in bytes)
-    * default: 10485760
+    	* default: 10485760
   * backup_count - Set the amount of log files to keep
-    * default: 5
+    	* default: 5
   * console
-    * enabled - Set to true to enable console logging
-      * default: false
-    * log_format - Set the format of the logs
-	  * default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+    	* enabled - Set to true to enable console logging
+      		* default: false
+    	* log_format - Set the format of the logs
+	  	* default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
   * file
-    * enabled - Set to true to enable file-based logging
-      * default: true
-    * log_format - Set the format of the logs
-	  * default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+    	* enabled - Set to true to enable file-based logging
+      		* default: true
+    	* log_format - Set the format of the logs
+	  	* default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
   * json
-    * enabled - Set to true to enable JSON logging to file (used for DataDog integration)
-      * default: false
-    * log_format - Set the format of the logs
-	  * default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
-  * console
-    * enabled - Set to true to enable console logging
-      * default: false
-    * log_format - Set the format of the logs
-	  * default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
-  * console
-    * enabled - Set to true to enable console logging
-      * default: false
-    * log_format - Set the format of the logs
-	  * default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
+    	* enabled - Set to true to enable JSON logging to file (used for DataDog integration)
+      		* default: false
+    	* log_format - Set the format of the logs
+	  	* default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
+  * tcp
+    	* enabled - Set to true to enable TCP logging
+      		* default: false
+    	* host - Define the hostname (typically localhost) of where to host the TCP logs
+      		* default: "localhost"
+    	* port - Set to true to enable console logging
+      		* default: 1798
+    	* log_format - Set the format of the logs
+      		* default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+  * json_tcp
+    	* enabled - Set to true to enable JSON TCP logging
+      		* default: false
+    	* host - Define the hostname (typically localhost) of where to host the JSON TCP logs
+      		* default: "localhost"
+    	* port - Set to true to enable console logging
+      		* default: 1798
+    	* log_format - Set the format of the logs
+      		* default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
 * fmd (Free Manga Downloader integration settings)
   * fmd_dir (FMD Directory) - Set the home location of Free Manga Downloader
-    * default: C:\Free Manga Downloader
+    	* default: C:\Free Manga Downloader
   * download_dir (Download Directory) - (DEVELOPMENT SETTING ONLY) If set, override the FMD download directory
+  	* default: null
 
 ## Planned Development
 
