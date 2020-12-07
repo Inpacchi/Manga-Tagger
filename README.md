@@ -94,38 +94,38 @@ db.createUser({
   * backup_count - Set the amount of log files to keep
     	* default: 5
   * console
-    	* enabled - Set to true to enable console logging
-      		* default: false
-    	* log_format - Set the format of the logs
-	  	* default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+    * enabled - Set to true to enable console logging
+      * default: false
+      * log_format - Set the format of the logs
+      * default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
   * file
-    	* enabled - Set to true to enable file-based logging
-      		* default: true
-    	* log_format - Set the format of the logs
-	  	* default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+    * enabled - Set to true to enable file-based logging
+      * default: true
+    * log_format - Set the format of the logs
+      * default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
   * json
-    	* enabled - Set to true to enable JSON logging to file (used for DataDog integration)
-      		* default: false
-    	* log_format - Set the format of the logs
-	  	* default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
+    * enabled - Set to true to enable JSON logging to file (used for DataDog integration)
+      * default: false
+    * log_format - Set the format of the logs
+      * default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
   * tcp
-    	* enabled - Set to true to enable TCP logging
-      		* default: false
-    	* host - Define the hostname (typically localhost) of where to host the TCP logs
-      		* default: "localhost"
-    	* port - Set to true to enable console logging
-      		* default: 1798
-    	* log_format - Set the format of the logs
-      		* default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+    * enabled - Set to true to enable TCP logging
+      * default: false
+    * host - Define the hostname (typically localhost) of where to host the TCP logs
+      * default: "localhost"
+    * port - Set to true to enable console logging
+      * default: 1798
+    * log_format - Set the format of the logs
+      * default: "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
   * json_tcp
-    	* enabled - Set to true to enable JSON TCP logging
-      		* default: false
-    	* host - Define the hostname (typically localhost) of where to host the JSON TCP logs
-      		* default: "localhost"
-    	* port - Set to true to enable console logging
-      		* default: 1798
-    	* log_format - Set the format of the logs
-      		* default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
+    * enabled - Set to true to enable JSON TCP logging
+      * default: false
+    * host - Define the hostname (typically localhost) of where to host the JSON TCP logs
+      * default: "localhost"
+    * port - Set to true to enable console logging
+      * default: 1798
+    * log_format - Set the format of the logs
+      * default: "%(asctime)s %(threadName)s %(thread)d %(name)s %(levelname)s %(message)s"
 * fmd (Free Manga Downloader integration settings)
   * fmd_dir (FMD Directory) - Set the home location of Free Manga Downloader
     	* default: C:\Free Manga Downloader
