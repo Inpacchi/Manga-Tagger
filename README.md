@@ -31,7 +31,7 @@ Download the latest release.
 
 Extract the folder to your desired location (preferably the same parent directory as Free Manga Downloader.)
 
-Once extracted, you can either install Manga Tagger as a service using the included `install.bat` **(recommended)** or run it on-demand using `run.bat`.
+Once extracted, you can either install Manga Tagger as a service using [NSSM](https://nssm.cc/) and the included `install.bat` **(recommended)** or run it on-demand using `run.bat`.
 
 ### Database Configuration
 In MongoDB, you don't need to explicitly define a database before assigning a user read/write permissions to it. Therefore, all you need to do in MongoDB is run the following command in the mongo shell with the authentication database you prefer:
