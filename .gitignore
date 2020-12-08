@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# IntelliJ
+.idea/
+
+# Manga Tagger
+library/
+downloads/
