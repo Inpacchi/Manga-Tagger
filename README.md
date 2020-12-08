@@ -1,4 +1,6 @@
 [![Gitter](https://badges.gitter.im/Manga-Tagger/community.svg)](https://gitter.im/Manga-Tagger/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+![GitHub all releases](https://img.shields.io/github/downloads/Inpacchi/Manga-Tagger/total)
+![GitHub issues](https://img.shields.io/github/issues/Inpacchi/Manga-Tagger)
 
 ![Manga Tagger Logo](manga_tagger_logo_cropped.png)
 
