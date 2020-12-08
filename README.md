@@ -2,7 +2,7 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/Inpacchi/Manga-Tagger/total)
 ![GitHub issues](https://img.shields.io/github/issues/Inpacchi/Manga-Tagger)
 
-![Manga Tagger Logo](manga_tagger_logo_cropped.png)
+![Manga Tagger Logo](images/manga_tagger_logo_cropped.png)
 
 A tool to rename and write metadata to digital manga chapters
 
