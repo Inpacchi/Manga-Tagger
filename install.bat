@@ -1,3 +1,4 @@
+pip install -r requirements.txt
 nssm install manga_tagger C:\MangaTagger\run.bat
 nssm set manga_tagger AppDirectory C:\MangaTagger
 nssm set manga_tagger AppExit Default Restart
