@@ -142,35 +142,36 @@ class AppSettings:
         # Load settings
         with open(f'{fmd_dir}\\userdata\\settings.json') as fmd_settings:
             settings_json = json.load(fmd_settings)
-            changes_made = False
+        changes_made = False
 
-            # GenerateMangaFolder MUST BE TRUE in order to properly parse the download directory
-            if settings_json['saveto']['GenerateMangaFolder'] is False:
-                settings_json['saveto']['GenerateMangaFolder'] = True
-                settings_json['saveto']['MangaCustomRename'] = '%MANGA%'
-                changes_made = True
-                cls._log.debug(f'Setting "Generate Manga Folder" should be enabled with "Manga Custom Rename" '
-                               f'configured as "%MANGA%"; this configuration has been applied')
+        # GenerateMangaFolder MUST BE TRUE in order to properly parse the download directory
+        if settings_json['saveto']['GenerateMangaFolder'] is False:
+            settings_json['saveto']['GenerateMangaFolder'] = True
+            settings_json['saveto']['MangaCustomRename'] = '%MANGA%'
+            changes_made = True
+            cls._log.debug(f'Setting "Generate Manga Folder" should be enabled with "Manga Custom Rename" '
+                           f'configured as "%MANGA%"; this configuration has been applied')
 
-            # ChapterCustomRename MUST FOLLOW this format to be properly parsed
-            if settings_json['saveto']['ChapterCustomRename'].find('-.-') == -1 \
-                    or settings_json['saveto']['ChapterCustomRename'] != '%MANGA% -.- %CHAPTER%':
-                settings_json['saveto']['ChapterCustomRename'] = '%MANGA% -.- %CHAPTER%'
-                changes_made = True
-                cls._log.debug(f'Setting "Chapter Custom Rename" should be configured as "%MANGA% -.- '
-                               f'%CHAPTER%" for parsing by Manga Tagger; this configuration has been applied')
+        # ChapterCustomRename MUST FOLLOW this format to be properly parsed
+        if settings_json['saveto']['ChapterCustomRename'].find('-.-') == -1 \
+                or settings_json['saveto']['ChapterCustomRename'] != '%MANGA% -.- %CHAPTER%':
+            settings_json['saveto']['ChapterCustomRename'] = '%MANGA% -.- %CHAPTER%'
+            changes_made = True
+            cls._log.debug(f'Setting "Chapter Custom Rename" should be configured as "%MANGA% -.- '
+                           f'%CHAPTER%" for parsing by Manga Tagger; this configuration has been applied')
 
-            # DEVELOPMENT ONLY SETTING
-            if download_dir is None:
-                cls.download_dir = settings_json['saveto']['SaveTo']
-                cls._log.debug(f'Download directory has been set as "{cls.download_dir}"')
-            else:
-                cls.download_dir = download_dir
-                cls._log.debug(
-                    f'Download directory has been overridden and set as "{cls.download_dir}"')
+        # DEVELOPMENT ONLY SETTING
+        if download_dir is None:
+            cls.download_dir = settings_json['saveto']['SaveTo']
+            cls._log.debug(f'Download directory has been set as "{cls.download_dir}"')
+        else:
+            cls.download_dir = download_dir
+            cls._log.debug(
+                f'Download directory has been overridden and set as "{cls.download_dir}"')
 
-            if changes_made:
-                json.dump(settings_json, fmd_settings)
+        if changes_made:
+            with open(f'{fmd_dir}\\userdata\\settings.json', 'w') as fmd_settings:
+                json.dump(settings_json, fmd_settings, indent=4)
                 cls._log.debug(f'Changes to the "settings.json" for Free Manga Downloader have been saved')
 
     @classmethod
