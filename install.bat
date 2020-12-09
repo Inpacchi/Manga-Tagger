@@ -1,5 +1,5 @@
 pip install -r requirements.txt
-nssm install manga_tagger C:\MangaTagger\run.bat
+nssm install manga_tagger "C:\Manga Tagger\run.bat"
 nssm set manga_tagger AppDirectory C:\MangaTagger
 nssm set manga_tagger AppExit Default Restart
 nssm set manga_tagger Description "A tool to rename and tag downloaded manga chapters with scraped metadata"
