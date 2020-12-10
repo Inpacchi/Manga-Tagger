@@ -1,4 +1,3 @@
-[![Gitter](https://badges.gitter.im/Manga-Tagger/community.svg)](https://gitter.im/Manga-Tagger/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 ![GitHub all releases](https://img.shields.io/github/downloads/Inpacchi/Manga-Tagger/total)
 ![GitHub issues](https://img.shields.io/github/issues/Inpacchi/Manga-Tagger)
 
@@ -23,16 +22,6 @@ Being an American comic fan, I regularly use ComicRack and [Comic Tagger](https:
 ## [Installation & Configuration](https://github.com/Inpacchi/Manga-Tagger/wiki/Installation-&-Configuration)
 
 ## [Settings](https://github.com/Inpacchi/Manga-Tagger/wiki/Setting-Configuration)
-
-## Planned Development
-
-#### Features
-* Unit testing
-
-#### Optimizations
-* MongoDB Table Links (look at serializations and staff)
-* Check staff roles for multiple staff under a single role
-* Check serializations for multiple publishers
 
 ## Support
 
