@@ -391,7 +391,7 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
             manga_id = None
 
             for result in manga_search['results']:
-                if result['type'].lower() == 'manga' and compare(manga_title, result['title']) > .8:
+                if result['type'].lower() == 'manga' and compare(manga_title, result['title']) > .9:
                     manga_id = result['mal_id']
                     break
 
