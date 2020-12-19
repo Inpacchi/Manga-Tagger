@@ -513,14 +513,14 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
 def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
     try:
         with ZipFile(manga_file_path, 'a') as zipfile:
-            zipfile.writestr('comicinfo.xml', comicinfo_xml)
+            zipfile.writestr('ComicInfo.xml', comicinfo_xml)
     except Exception as e:
         LOG.exception(e, extra=logging_info)
         LOG.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
                     extra=logging_info)
         return
 
-    LOG.info(f'comicinfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
+    LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
 
 
 def search_staff_by_mal_id(mal_id, logging_info):
