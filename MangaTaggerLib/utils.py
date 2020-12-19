@@ -31,6 +31,7 @@ class AppSettings:
     threads = None
     max_queue_size = None
 
+    image_dir = None
     download_dir = None
     library_dir = None
     is_network_path = None
@@ -81,7 +82,7 @@ class AppSettings:
         if settings['application']['dry_run']['enabled']:
             cls.mode_settings = {'database_insert': settings['application']['dry_run']['database_insert'],
                                  'rename_file': settings['application']['dry_run']['rename_file'],
-                                 'write_comicinfo': settings['application']['dry_run']['write_comicinfo']}
+                                 'modify_file': settings['application']['dry_run']['modify_file']}
 
         # Multithreading Configuration
         if settings['application']['multithreading']['threads'] <= 0:
@@ -106,7 +107,7 @@ class AppSettings:
             cls.is_network_path = settings['application']['library']['is_network_path']
 
             if not os.path.exists(cls.library_dir):
-                cls._log.info(f'Library directory "{AppSettings.library_dir}" does not exist; creating now and '
+                cls._log.info(f'Library directory "{cls.library_dir}" does not exist; creating now and '
                               f'granting application permission to access it.')
                 os.mkdir(cls.library_dir)
                 cls.grant_permissions(cls.library_dir)
@@ -123,6 +124,14 @@ class AppSettings:
         # Register function to be run prior to application termination
         atexit.register(cls._exit_handler)
         cls._log.debug(f'{cls.__name__} class has been initialized.')
+
+        # Image Directory
+        cls.image_dir = settings['application']['image_dir']
+        if not os.path.exists(cls.image_dir):
+            cls._log.info(f'Image directory "{cls.image_dir}" does not exist; creating now and '
+                          f'granting application permission to access it.')
+            os.mkdir(cls.image_dir)
+            cls.grant_permissions(cls.image_dir)
 
     @classmethod
     def grant_permissions(cls, dir_name, print_output=True):

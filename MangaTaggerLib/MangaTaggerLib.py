@@ -4,6 +4,7 @@ import requests
 import time
 from datetime import datetime
 from ntpath import basename
+from PIL import Image
 from requests.exceptions import ConnectionError
 from xml.etree.ElementTree import SubElement, Element, Comment, tostring
 from xml.dom.minidom import parseString
@@ -35,7 +36,7 @@ def main():
         LOG.info('DRY RUN MODE ENABLED')
         LOG.info(f"MetadataTable Insertion: {AppSettings.mode_settings['database_insert']}")
         LOG.info(f"Renaming Files: {AppSettings.mode_settings['rename_file']}")
-        LOG.info(f"Writing Comicinfo.xml: {AppSettings.mode_settings['write_comicinfo']}")
+        LOG.info(f"Writing Comicinfo.xml: {AppSettings.mode_settings['modify_file']}")
 
     QueueWorker.run()
 
@@ -412,7 +413,7 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
             time.sleep(60)
             jikan_details = MTJikan().manga(manga_id)
 
-        anilist_details = search_staff_by_mal_id(manga_id, logging_info)
+        anilist_details = search_by_mal_id(manga_id, logging_info)
         LOG.debug(f'jikan_details: {jikan_details}')
         LOG.debug(f'anilist_details: {anilist_details}')
 
@@ -422,6 +423,10 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
         if AppSettings.mode_settings is None or AppSettings.mode_settings['database_insert']:
             MetadataTable.insert(manga_metadata, logging_info)
 
+        if not os.path.exists(f'{AppSettings.image_dir}\\{manga_title}_cover.jpg'):
+            LOG.info('Downloading series cover image...', extra=logging_info)
+            download_cover_image(manga_title, anilist_details['coverImage']['extraLarge'])
+
         LOG.info(f'Retrieved metadata for "{manga_title}" from the Anilist and MyAnimeList APIs; '
                  f'now unlocking series for processing!', extra=logging_info)
         AppSettings.processed_series.add(manga_title)
@@ -429,8 +434,8 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
 
     comicinfo_xml = construct_comicinfo_xml(manga_metadata, manga_chapter_number, logging_info)
 
-    if AppSettings.mode_settings is None or AppSettings.mode_settings['write_comicinfo']:
-        reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info)
+    if AppSettings.mode_settings is None or AppSettings.mode_settings['modify_file']:
+        reconstruct_manga_chapter(manga_title, comicinfo_xml, manga_file_path, logging_info)
 
 
 def construct_comicinfo_xml(metadata, chapter_number, logging_info):
@@ -510,9 +515,10 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     return parseString(tostring(comicinfo)).toprettyxml(indent="   ")
 
 
-def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
+def reconstruct_manga_chapter(manga_title, comicinfo_xml, manga_file_path, logging_info):
     try:
         with ZipFile(manga_file_path, 'a') as zipfile:
+            zipfile.write(f'{AppSettings.image_dir}\\{manga_title}_cover.jpg', '000_cover.jpg')
             zipfile.writestr('ComicInfo.xml', comicinfo_xml)
     except Exception as e:
         LOG.exception(e, extra=logging_info)
@@ -523,11 +529,14 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
     LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
 
 
-def search_staff_by_mal_id(mal_id, logging_info):
+def search_by_mal_id(mal_id, logging_info):
     query = '''
-    query search_staff_by_mal_id ($mal_id: Int) {
+    query search_by_mal_id ($mal_id: Int) {
       Media (idMal: $mal_id, type: MANGA) {
         siteUrl
+        coverImage {
+          extraLarge
+        }
         staff {
           edges {
             node{
@@ -562,3 +571,10 @@ def search_staff_by_mal_id(mal_id, logging_info):
     LOG.debug(f'Response JSON: {response.json()}')
 
     return response.json()['data']['Media']
+
+
+def download_cover_image(manga_title, image_url):
+    image = requests.get(image_url)
+
+    with open(f'{AppSettings.image_dir}\\{manga_title}_cover.jpg', 'wb') as image_file:
+        image_file.write(image.content)

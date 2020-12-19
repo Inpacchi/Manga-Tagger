@@ -1,6 +1,7 @@
 {
 	"application": {
 		"timezone": "America/New_York",
+		"image_dir": "cover_images",
 		"library": {
 			"dir": "C:\\Library",
 			"is_network_path": false
@@ -9,7 +10,7 @@
 			"enabled": false,
 			"rename_file": false,
 			"database_insert": false,
-			"write_comicinfo": false
+			"modify_file": false
 		},
 		"multithreading": {
 			"threads": 8,
