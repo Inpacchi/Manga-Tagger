@@ -12,11 +12,12 @@ from zipfile import ZipFile
 from jikanpy.exceptions import APIException
 
 from MangaTaggerLib.api import MTJikan
-from MangaTaggerLib.database import MetadataTable, ProcFilesTable
+from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
     MangaNotFoundError
 from MangaTaggerLib.models import Metadata
-from MangaTaggerLib.utils import AppSettings, QueueWorker, compare
+from MangaTaggerLib.task_queue import QueueWorker
+from MangaTaggerLib.utils import AppSettings, compare
 
 # Global Variable Declaration
 LOG = logging.getLogger('MangaTaggerLib.MangaTaggerLib')
@@ -106,7 +107,7 @@ def process_manga_chapter(file_path, event_id):
             return
 
     # More Multithreading Optimization
-    if directory_name in AppSettings.processed_series:
+    if directory_name in ProcSeriesTable.processed_series:
         LOG.info(f'"{directory_name}" has been processed as a searched series and will continue processing.',
                  extra=logging_info)
     else:
@@ -144,8 +145,8 @@ def file_renamer(filename, logging_info):
         LOG.exception(ufe, extra=logging_info)
         return None
 
-    manga_title = filename[0]
-    chapter_title = filename[1].strip('.cbz').lower()
+    manga_title: str = filename[0]
+    chapter_title: str = filename[1].strip('.cbz').lower()
     LOG.debug(f'manga_title: {manga_title}')
     LOG.debug(f'chapter: {chapter_title}')
 
@@ -172,9 +173,13 @@ def file_renamer(filename, logging_info):
                 delimiter_index = 2
             else:
                 delimiter_index = 3
+        elif compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
+            delimiter = manga_title.lower()
+            delimiter_index = len(manga_title) + 1
         else:
             raise UnparsableFilenameError(filename, 'ch/chapter')
     except UnparsableFilenameError as ufe:
+
         LOG.exception(ufe, extra=logging_info)
         return None
 
@@ -376,12 +381,12 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
             db_exists = False
 
     if db_exists:
-        if manga_title in AppSettings.processed_series:
+        if manga_title in ProcSeriesTable.processed_series:
             LOG.info(f'Found an entry in manga_metadata for "{manga_title}".', extra=logging_info)
         else:
             LOG.info(f'Found an entry in manga_metadata for "{manga_title}"; unlocking series for processing.',
                      extra=logging_info)
-            AppSettings.processed_series.add(manga_title)
+            ProcSeriesTable.processed_series.add(manga_title)
             CURRENTLY_PENDING_DB_SEARCH.remove(manga_title)
 
         manga_metadata = Metadata(manga_title, logging_info, details=manga_search)
@@ -424,7 +429,7 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
 
         LOG.info(f'Retrieved metadata for "{manga_title}" from the Anilist and MyAnimeList APIs; '
                  f'now unlocking series for processing!', extra=logging_info)
-        AppSettings.processed_series.add(manga_title)
+        ProcSeriesTable.processed_series.add(manga_title)
         CURRENTLY_PENDING_DB_SEARCH.remove(manga_title)
 
     comicinfo_xml = construct_comicinfo_xml(manga_metadata, manga_chapter_number, logging_info)
@@ -505,7 +510,7 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     comicinfo.set('xmlns:xsd', 'http://www.w3.org/2001/XMLSchema')
     comicinfo.set('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
 
-    LOG.info(f'Finished creating comicinfo object for "{metadata.series_title}", chapter {chapter_number}.',
+    LOG.info(f'Finished creating ComicInfo object for "{metadata.series_title}", chapter {chapter_number}.',
              extra=logging_info)
     return parseString(tostring(comicinfo)).toprettyxml(indent="   ")
 
