@@ -151,7 +151,10 @@ def file_renamer(filename, logging_info):
 
     # If "chapter" is in the chapter substring
     try:
-        if chapter_title.find('chapter') > -1:
+        if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
+            delimiter = manga_title.lower()
+            delimiter_index = len(manga_title) + 1
+        elif chapter_title.find('chapter') > -1:
             delimiter = 'chapter'
 
             if ' ' in chapter_title:
