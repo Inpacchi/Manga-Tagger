@@ -1,6 +1,7 @@
 import logging
 import sys
 from datetime import datetime
+from queue import Queue
 
 from bson.errors import InvalidDocument
 from pymongo import MongoClient
@@ -52,12 +53,22 @@ class Database:
         MetadataTable.initialize()
         ProcFilesTable.initialize()
         ProcSeriesTable.initialize()
+        TaskQueueTable.initialize()
 
         cls._log.info('Database connection established!')
-        cls._log.debug(f'{cls.__name__} class has been initialized.')
+        cls._log.debug(f'{cls.__name__} class has been initialized')
+
+    @classmethod
+    def load_database_tables(cls):
+        ProcSeriesTable.load()
+
+    @classmethod
+    def save_database_tables(cls):
+        ProcSeriesTable.save()
 
     @classmethod
     def close_connection(cls):
+        cls._log.info('Closing database connection...')
         cls._client.close()
 
     @classmethod
@@ -103,13 +114,26 @@ class Database:
 
         cls._log.info('Update was successful!', extra=logging_info)
 
+    @classmethod
+    def delete_all(cls, logging_info):
+        try:
+            cls._log.info('Attempting to delete all records in the database...', extra=logging_info)
+            cls._database.delete_many({})
+        except Exception as e:
+            cls._log.exception(e, extra=logging_info)
+            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
+                             extra=logging_info)
+            return
+
+        cls._log.info('Deletion was successful!', extra=logging_info)
+
 
 class MetadataTable(Database):
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
         cls._database = super()._database['manga_metadata']
-        cls._log.debug(f'{cls.__name__} class has been initialized.')
+        cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
     def search_by_search_value(cls, manga_title):
@@ -139,7 +163,7 @@ class ProcFilesTable(Database):
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
         cls._database = super()._database['processed_files']
-        cls._log.debug(f'{cls.__name__} class has been initialized.')
+        cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
     def search(cls, manga_title, chapter_number):
@@ -152,34 +176,67 @@ class ProcFilesTable(Database):
 
 
 class ProcSeriesTable(Database):
+    processed_series = set()
+
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
         cls._database = super()._database['processed_series']
         cls._id = None
         cls._last_save_time = None
-        cls._log.debug(f'{cls.__name__} class has been initialized.')
+        cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
-    def save(cls, processed_series):
+    def save(cls):
+        cls._log.info('Saving processed series...')
         cls._database.delete_one({
             '_id': cls._id
         })
-        super(ProcSeriesTable, cls).insert(dict.fromkeys(processed_series, True))
+        super(ProcSeriesTable, cls).insert(dict.fromkeys(cls.processed_series, True))
 
     @classmethod
     def load(cls):
+        cls._log.info('Loading processed series...')
         results = cls._database.find_one()
         if results is not None:
             cls._id = results.pop('_id')
-            return set(results.keys())
+            cls.processed_series = set(results.keys())
 
     @classmethod
-    def save_while_running(cls, processed_series):
+    def save_while_running(cls):
         if cls._last_save_time is not None:
             last_save_delta = (datetime.now() - cls._last_save_time).total_seconds()
 
             # Save every hour
             if last_save_delta > 3600:
                 cls._last_save_time = datetime.now()
-                cls.save(processed_series)
+                cls.save()
+
+
+class TaskQueueTable(Database):
+    @classmethod
+    def initialize(cls):
+        cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
+        cls._database = super()._database['task_queue']
+        cls.queue = Queue()
+        cls._log.debug(f'{cls.__name__} class has been initialized')
+
+    @classmethod
+    def load(cls, task_list: list):
+        cls._log.info('Loading task queue...')
+        results = cls._database.find()
+
+        if results is not None:
+            for result in results:
+                task_list.append(result)
+
+    @classmethod
+    def save(cls, queue):
+        if not queue.empty():
+            cls._log.info('Saving task queue...')
+            while not queue.empty():
+                super(TaskQueueTable, cls).insert(queue.get().__dict__)
+
+    @classmethod
+    def delete_all(cls):
+        super(TaskQueueTable, cls).delete_all(None)
