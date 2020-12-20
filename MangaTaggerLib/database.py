@@ -114,6 +114,19 @@ class Database:
 
         cls._log.info('Update was successful!', extra=logging_info)
 
+    @classmethod
+    def delete_all(cls, logging_info):
+        try:
+            cls._log.info('Attempting to delete all records in the database...', extra=logging_info)
+            cls._database.delete_many({})
+        except Exception as e:
+            cls._log.exception(e, extra=logging_info)
+            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
+                             extra=logging_info)
+            return
+
+        cls._log.info('Deletion was successful!', extra=logging_info)
+
 
 class MetadataTable(Database):
     @classmethod
@@ -223,3 +236,7 @@ class TaskQueueTable(Database):
             cls._log.info('Saving task queue...')
             while not queue.empty():
                 super(TaskQueueTable, cls).insert(queue.get().__dict__)
+
+    @classmethod
+    def delete_all(cls):
+        super(TaskQueueTable, cls).delete_all(None)
