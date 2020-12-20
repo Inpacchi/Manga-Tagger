@@ -54,9 +54,20 @@ class QueueWorker:
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
         cls._queue = Queue(maxsize=cls.max_queue_size)
-        cls._observer = Observer()
         cls._worker_list = []
         cls._running = True
+
+        for i in range(cls.threads):
+            worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
+            cls._log.debug(f'Worker thread {worker.name} has been initialized')
+            cls._worker_list.append(worker)
+
+        if cls.is_library_network_path:
+            cls._observer = PollingObserver()
+        else:
+            cls._observer = Observer()
+
+        cls._observer.schedule(SeriesHandler(cls._queue), cls.download_dir, True)
 
     @classmethod
     def load_task_queue(cls):
@@ -96,17 +107,9 @@ class QueueWorker:
 
     @classmethod
     def run(cls):
-        cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
-        for i in range(cls.threads):
-            worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
-            cls._log.debug(f'Worker thread {worker.name} has been initialized')
-            cls._worker_list.append(worker)
+        for worker in cls._worker_list:
             worker.start()
 
-        if cls.is_library_network_path:
-            cls._observer = PollingObserver()
-
-        cls._observer.schedule(SeriesHandler(cls._queue), cls.download_dir, True)
         cls._observer.start()
 
         cls._log.info(f'Watching "{cls.download_dir}" for new downloads')
