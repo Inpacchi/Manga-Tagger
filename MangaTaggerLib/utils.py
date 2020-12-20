@@ -20,6 +20,7 @@ from watchdog.observers import Observer
 from watchdog.observers.polling import PollingObserver
 
 from MangaTaggerLib import MangaTaggerLib
+from MangaTaggerLib.api import AniList
 from MangaTaggerLib.database import Database, ProcSeriesTable
 
 
@@ -119,6 +120,9 @@ class AppSettings:
         cls.processed_series = ProcSeriesTable.load()
         if cls.processed_series is None:
             cls.processed_series = set()
+
+        # Initialize API
+        AniList.initialize()
 
         # Register function to be run prior to application termination
         atexit.register(cls._exit_handler)

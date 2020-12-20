@@ -1,6 +1,5 @@
 import logging
 import os
-import requests
 import time
 from datetime import datetime
 from ntpath import basename
@@ -11,7 +10,7 @@ from zipfile import ZipFile
 
 from jikanpy.exceptions import APIException
 
-from MangaTaggerLib.api import MTJikan
+from MangaTaggerLib.api import MTJikan, AniList
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
     MangaNotFoundError
@@ -394,10 +393,12 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
             manga_id = None
 
             for result in manga_search['results']:
-                if result['type'].lower() == 'manga' and compare(manga_title, result['title']) > .9:
-                    manga_id = result['mal_id']
-                    break
+                if result['type'].lower() == 'manga':
+                    titles = AniList.search_for_manga_title_by_mal_id(result['mal_id'], logging_info)
 
+                    if compare_titles(manga_title, titles, logging_info):
+                        manga_id = result['mal_id']
+                        break
             if manga_id is None:
                 raise MangaNotFoundError(manga_title)
         except MangaNotFoundError as mnfe:
@@ -415,7 +416,7 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
             time.sleep(60)
             jikan_details = MTJikan().manga(manga_id)
 
-        anilist_details = search_staff_by_mal_id(manga_id, logging_info)
+        anilist_details = AniList.search_staff_by_mal_id(manga_id, logging_info)
         LOG.debug(f'jikan_details: {jikan_details}')
         LOG.debug(f'anilist_details: {anilist_details}')
 
@@ -434,6 +435,29 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
 
     if AppSettings.mode_settings is None or AppSettings.mode_settings['write_comicinfo']:
         reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info)
+
+
+def compare_titles(manga_title, titles, logging_info):
+    romaji_title = titles['romaji']
+    english_title = titles['english']
+
+    romaji_comparison_value = compare(manga_title, romaji_title)
+    english_comparison_value = compare(manga_title, english_title)
+
+    LOG.info(f'Comparing titles found for "{manga_title}"...')
+    logging_info['romaji_title'] = romaji_title
+    logging_info['english_title'] = english_title
+
+    LOG.debug(f'Romaji Title: {romaji_title}')
+    LOG.debug(f'Romaji Comparison Value: {romaji_comparison_value}')
+    LOG.debug(f'English Title: {english_title}')
+    LOG.debug(f'English Comparison Value: {english_comparison_value}')
+
+    if romaji_comparison_value > .9 or english_comparison_value > .9:
+        LOG.info(f'Match found using titles "{romaji_title}" and/or "{english_title}"')
+        return True
+    else:
+        return False
 
 
 def construct_comicinfo_xml(metadata, chapter_number, logging_info):
@@ -524,44 +548,3 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
         return
 
     LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
-
-
-def search_staff_by_mal_id(mal_id, logging_info):
-    query = '''
-    query search_staff_by_mal_id ($mal_id: Int) {
-      Media (idMal: $mal_id, type: MANGA) {
-        siteUrl
-        staff {
-          edges {
-            node{
-              name {
-                first
-                last
-                full
-                alternative
-              }
-              siteUrl
-            }
-            role
-          }
-        }
-      }
-    }
-    '''
-
-    variables = {
-        'mal_id': mal_id
-    }
-
-    try:
-        response = requests.post('https://graphql.anilist.co', json={'query': query, 'variables': variables})
-    except Exception as e:
-        LOG.exception(e, extra=logging_info)
-        LOG.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
-                    extra=logging_info)
-        return None
-
-    LOG.debug(f'mal_id: {mal_id}')
-    LOG.debug(f'Response JSON: {response.json()}')
-
-    return response.json()['data']['Media']
