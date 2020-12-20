@@ -43,6 +43,7 @@ class QueueWorker:
     _observer: Observer = None
     _log: logging = None
     _worker_list: List[Thread] = None
+    _running: bool = False
 
     max_queue_size = None
     threads = None
@@ -55,6 +56,7 @@ class QueueWorker:
         cls._queue = Queue(maxsize=cls.max_queue_size)
         cls._observer = Observer()
         cls._worker_list = []
+        cls._running = True
 
     @classmethod
     def load_task_queue(cls):
@@ -67,18 +69,30 @@ class QueueWorker:
         TaskQueueTable.delete_all()
 
     @classmethod
-    def save(cls):
+    def save_task_queue(cls):
         TaskQueueTable.save(cls._queue)
+        with cls._queue.mutex:
+            cls._queue.queue.clear()
 
     @classmethod
     def exit(cls):
-        cls._log.info('Stopping worker threads...')
-        for worker in cls._worker_list:
-            worker.join()
+        # Stop worker threads from picking new items from the queue in process()
+        cls._log.info('Stopping processing...')
+        cls._running = False
 
+        # Stop watchdog from adding new events to the queue
         cls._log.debug('Stopping watchdog...')
         cls._observer.stop()
         cls._observer.join()
+
+        # Save and empty task queue
+        cls.save_task_queue()
+
+        # Finish current running jobs and stop worker threads
+        cls._log.info('Stopping worker threads...')
+        for worker in cls._worker_list:
+            worker.join()
+            cls._log.debug(f'Worker thread {worker.name} has been shut down')
 
     @classmethod
     def run(cls):
@@ -97,9 +111,12 @@ class QueueWorker:
 
         cls._log.info(f'Watching "{cls.download_dir}" for new downloads')
 
+        while cls._running:
+            time.sleep(1)
+
     @classmethod
     def process(cls):
-        while True:
+        while cls._running:
             if not cls._queue.empty():
                 event = cls._queue.get()
 

@@ -240,9 +240,6 @@ class AppSettings:
         # Save necessary database tables
         Database.save_database_tables()
 
-        # Save current task queue
-        QueueWorker.save()
-
         # Close MongoDB connection
         Database.close_connection()
 
