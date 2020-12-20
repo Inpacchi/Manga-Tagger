@@ -166,6 +166,9 @@ def file_renamer(filename, logging_info):
         elif chapter_title.find('ch') > -1:
             delimiter = 'ch'
             delimiter_index = 2
+        elif chapter_title.find('act') > -1:
+            delimiter = 'act'
+            delimiter_index = 3
         else:
             raise UnparsableFilenameError(filename, 'ch/chapter')
     except UnparsableFilenameError as ufe:
