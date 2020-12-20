@@ -12,6 +12,7 @@ from pythonjsonlogger import jsonlogger
 
 from MangaTaggerLib.database import Database
 from MangaTaggerLib.task_queue import QueueWorker
+from MangaTaggerLib.api import AniList
 
 
 class AppSettings:
@@ -108,6 +109,9 @@ class AppSettings:
         # Initialize QueueWorker and load task queue
         QueueWorker.initialize()
         QueueWorker.load_task_queue()
+
+        # Initialize API
+        AniList.initialize()
 
         # Register function to be run prior to application termination
         atexit.register(cls._exit_handler)
