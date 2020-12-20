@@ -173,9 +173,6 @@ def file_renamer(filename, logging_info):
                 delimiter_index = 2
             else:
                 delimiter_index = 3
-        elif compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
-            delimiter = manga_title.lower()
-            delimiter_index = len(manga_title) + 1
         else:
             raise UnparsableFilenameError(filename, 'ch/chapter')
     except UnparsableFilenameError as ufe:
