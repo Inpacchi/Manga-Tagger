@@ -443,17 +443,17 @@ def compare_titles(manga_title, titles, logging_info):
     romaji_comparison_value = compare(manga_title, romaji_title)
     english_comparison_value = compare(manga_title, english_title)
 
-    LOG.info(f'Comparing titles found for "{manga_title}"...')
+    LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
     logging_info['romaji_title'] = romaji_title
     logging_info['english_title'] = english_title
 
-    LOG.debug(f'Romaji Title: {romaji_title}')
-    LOG.debug(f'Romaji Comparison Value: {romaji_comparison_value}')
-    LOG.debug(f'English Title: {english_title}')
-    LOG.debug(f'English Comparison Value: {english_comparison_value}')
+    LOG.debug(f'Romaji Title: {romaji_title}', extra=logging_info)
+    LOG.debug(f'Romaji Comparison Value: {romaji_comparison_value}', extra=logging_info)
+    LOG.debug(f'English Title: {english_title}', extra=logging_info)
+    LOG.debug(f'English Comparison Value: {english_comparison_value}', extra=logging_info)
 
     if romaji_comparison_value > .9 or english_comparison_value > .9:
-        LOG.info(f'Match found using titles "{romaji_title}" and/or "{english_title}"')
+        LOG.info(f'Match found using titles "{romaji_title}" and/or "{english_title}"', extra=logging_info)
         return True
     else:
         return False
