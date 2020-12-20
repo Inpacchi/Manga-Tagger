@@ -52,7 +52,7 @@ class QueueWorker:
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
-        cls._queue = Queue()
+        cls._queue = Queue(maxsize=cls.max_queue_size)
         cls._observer = Observer()
         cls._worker_list = []
 
@@ -77,7 +77,6 @@ class QueueWorker:
     @classmethod
     def run(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
-        cls._queue = Queue(maxsize=cls.max_queue_size)
         for i in range(cls.threads):
             worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
             cls._log.debug(f'Worker thread {worker.name} has been initialized')
