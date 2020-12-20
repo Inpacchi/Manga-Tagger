@@ -55,3 +55,9 @@ class FileUpdateNotRequiredError(FileExistsError):
     """
     def __init__(self, filename):
         super().__init__(f'"{filename}" is older than or the same as the current existing chapter; skipping')
+
+
+class MangaMatchedException(Exception):
+    """
+    Exception raised to bypass try...except when comparing manga titles.
+    """

@@ -13,7 +13,7 @@ from jikanpy.exceptions import APIException
 from MangaTaggerLib.api import MTJikan, AniList
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
-    MangaNotFoundError
+    MangaNotFoundError, MangaMatchedException
 from MangaTaggerLib.models import Metadata
 from MangaTaggerLib.utils import AppSettings, QueueWorker, compare
 
@@ -143,8 +143,8 @@ def file_renamer(filename, logging_info):
         LOG.exception(ufe, extra=logging_info)
         return None
 
-    manga_title = filename[0]
-    chapter_title = filename[1].strip('.cbz').lower()
+    manga_title: str = filename[0]
+    chapter_title: str = filename[1].strip('.cbz').lower()
     LOG.debug(f'manga_title: {manga_title}')
     LOG.debug(f'chapter: {chapter_title}')
 
@@ -153,32 +153,26 @@ def file_renamer(filename, logging_info):
         if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
             delimiter = manga_title.lower()
             delimiter_index = len(manga_title) + 1
-        elif chapter_title.find('chapter') > -1:
-            delimiter = 'chapter'
+            raise MangaMatchedException()
 
-            if ' ' in chapter_title:
-                delimiter_index = 7
-            else:
-                delimiter_index = 8
+        chapter_title = chapter_title.replace(' ', '')
+
+        if chapter_title.find('chapter') > -1:
+            delimiter = 'chapter'
+            delimiter_index = 7
         elif chapter_title.find('ch.') > -1:
             delimiter = 'ch.'
-
-            if ' ' in chapter_title:
-                delimiter_index = 3
-            else:
-                delimiter_index = 4
+            delimiter_index = 3
         elif chapter_title.find('ch') > -1:
-            delimiter = 'ch.'
-
-            if ' ' in chapter_title:
-                delimiter_index = 2
-            else:
-                delimiter_index = 3
+            delimiter = 'ch'
+            delimiter_index = 2
         else:
             raise UnparsableFilenameError(filename, 'ch/chapter')
     except UnparsableFilenameError as ufe:
         LOG.exception(ufe, extra=logging_info)
         return None
+    except MangaMatchedException:
+        pass
 
     LOG.debug(f'delimiter: {delimiter}')
     LOG.debug(f'delimiter_index: {delimiter_index}')
