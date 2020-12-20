@@ -107,7 +107,7 @@ class AppSettings:
 
         # Initialize QueueWorker and load task queue
         QueueWorker.initialize()
-        QueueWorker.load()
+        QueueWorker.load_task_queue()
 
         # Register function to be run prior to application termination
         atexit.register(cls._exit_handler)

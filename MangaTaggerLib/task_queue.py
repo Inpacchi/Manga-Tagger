@@ -57,8 +57,14 @@ class QueueWorker:
         cls._worker_list = []
 
     @classmethod
-    def load(cls):
-        TaskQueueTable.load(cls._queue)
+    def load_task_queue(cls):
+        task_list = []
+        TaskQueueTable.load(task_list)
+
+        for task in task_list:
+            cls._queue.put(QueueEvent(task, True))
+
+        TaskQueueTable.delete_all()
 
     @classmethod
     def save(cls):
