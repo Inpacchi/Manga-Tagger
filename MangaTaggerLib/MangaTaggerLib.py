@@ -62,7 +62,7 @@ def process_manga_chapter(file_path, event_id):
     try:
         new_filename = manga_details[0]
         LOG.debug(f'new_filename: {new_filename}')
-    except TypeError as te:
+    except TypeError:
         LOG.warning(f'Manga Tagger was unable to process "{file_path}"', extra=logging_info)
         return None
 
@@ -173,7 +173,6 @@ def file_renamer(filename, logging_info):
         else:
             raise UnparsableFilenameError(filename, 'ch/chapter')
     except UnparsableFilenameError as ufe:
-
         LOG.exception(ufe, extra=logging_info)
         return None
     except MangaMatchedException:
@@ -265,7 +264,7 @@ def rename_action(current_file_path, new_file_path, manga_title, chapter_number,
                                 f'processed will be deleted', extra=logging_info)
                     os.remove(current_file_path)
                     raise FileAlreadyProcessedError(basename(current_file_path))
-        except KeyError as ke:
+        except KeyError:
             LOG.info(f'Series "{manga_title}" has been processed before, but chapter {chapter_number} has not. '
                      f'Proceeding with file rename...', extra=logging_info)
             insert_record_and_rename(current_file_path, new_file_path, manga_title, chapter_number, logging_info)

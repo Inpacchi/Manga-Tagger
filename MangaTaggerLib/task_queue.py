@@ -132,6 +132,8 @@ class QueueWorker:
                 else:
                     cls._log.error('Event was passed, but Manga Tagger does not know how to handle it. Please open an '
                                    'issue for further investigation.')
+                    cls._queue.task_done()
+                    return 
 
                 current_size = -1
                 try:
