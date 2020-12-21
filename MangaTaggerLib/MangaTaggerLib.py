@@ -10,7 +10,7 @@ from zipfile import ZipFile
 
 from jikanpy.exceptions import APIException
 
-from MangaTaggerLib.api import MTJikan, Anilist
+from MangaTaggerLib.api import MTJikan, AniList
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
     MangaNotFoundError, MangaMatchedException
