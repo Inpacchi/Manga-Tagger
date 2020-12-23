@@ -7,7 +7,6 @@ import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
 
 import numpy
-from configparser import ConfigParser
 from pythonjsonlogger import jsonlogger
 
 from MangaTaggerLib.database import Database
@@ -55,10 +54,6 @@ class AppSettings:
 
         # Free Manga Downloader Configuration
         cls._initialize_fmd_settings(settings['fmd']['fmd_dir'], settings['fmd']['download_dir'])
-
-        # Set Application Version
-        cls.version = setup['metadata']['version']
-        cls._log.debug(f'Version: {cls.version}')
 
         # Set Application Timezone
         cls.timezone = settings['application']['timezone']

@@ -10,6 +10,7 @@ from zipfile import ZipFile
 
 from jikanpy.exceptions import APIException
 
+from MangaTaggerLib._version import __version__
 from MangaTaggerLib.api import MTJikan, AniList
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
@@ -28,7 +29,7 @@ CURRENTLY_PENDING_RENAME = set()
 def main():
     AppSettings.load()
 
-    LOG.info(f'Starting Manga Tagger - Version {AppSettings.version}')
+    LOG.info(f'Starting Manga Tagger - Version {__version__}')
     LOG.debug('RUNNING IN DEBUG MODE')
 
     if AppSettings.mode_settings is not None:
