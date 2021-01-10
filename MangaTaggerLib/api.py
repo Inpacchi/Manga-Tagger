@@ -133,4 +133,4 @@ class AniList:
             'mal_id': mal_id
         }
 
-        return cls._post(query, variables, logging_info)['title']
+        return cls._post(query, variables, logging_info)

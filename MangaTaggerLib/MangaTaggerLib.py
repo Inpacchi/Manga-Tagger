@@ -388,7 +388,10 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
 
             for result in manga_search['results']:
                 if result['type'].lower() == 'manga':
-                    titles = AniList.search_for_manga_title_by_mal_id(result['mal_id'], logging_info)
+                    try:
+                        titles = AniList.search_for_manga_title_by_mal_id(result['mal_id'], logging_info)['title']
+                    except TypeError:
+                        continue
 
                     if compare_titles(manga_title, titles, logging_info):
                         manga_id = result['mal_id']
@@ -431,26 +434,32 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
         reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info)
 
 
-def compare_titles(manga_title, titles, logging_info):
-    romaji_title = titles['romaji']
-    english_title = titles['english']
-
-    romaji_comparison_value = compare(manga_title, romaji_title)
-    english_comparison_value = compare(manga_title, english_title)
-
+def compare_titles(manga_title, titles: dict, logging_info):
     LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
-    logging_info['romaji_title'] = romaji_title
-    logging_info['english_title'] = english_title
 
-    LOG.debug(f'Romaji Title: {romaji_title}', extra=logging_info)
-    LOG.debug(f'Romaji Comparison Value: {romaji_comparison_value}', extra=logging_info)
-    LOG.debug(f'English Title: {english_title}', extra=logging_info)
-    LOG.debug(f'English Comparison Value: {english_comparison_value}', extra=logging_info)
+    if 'romaji' in titles.keys():
+        romaji_title = titles['romaji']
+        romaji_comparison_value = compare(manga_title, romaji_title)
+        logging_info['romaji_title'] = romaji_title
+        LOG.debug(f'Romaji Title: {romaji_title}', extra=logging_info)
+        LOG.debug(f'Romaji Comparison Value: {romaji_comparison_value}', extra=logging_info)
 
-    if romaji_comparison_value > .9 or english_comparison_value > .9:
-        LOG.info(f'Match found using titles "{romaji_title}" and/or "{english_title}"', extra=logging_info)
-        return True
+        if romaji_comparison_value > .9:
+            LOG.info(f'Match found using titles "{romaji_title}"', extra=logging_info)
+            return True
+    elif 'english' in titles.keys():
+        english_title = titles['english']
+        english_comparison_value = compare(manga_title, english_title)
+        logging_info['english_title'] = english_title
+        LOG.debug(f'English Title: {english_title}', extra=logging_info)
+        LOG.debug(f'English Comparison Value: {english_comparison_value}', extra=logging_info)
+
+        if english_comparison_value > .9:
+            LOG.info(f'Match found using titles "{english_title}"', extra=logging_info)
+            return True
     else:
+        LOG.warning('Both the Romaji and English titles were not found. Manga Tagger is not sure how to proceed;'
+                    'suspending processing. Please log an issue for investigation.', extra=logging_info)
         return False
 
 
