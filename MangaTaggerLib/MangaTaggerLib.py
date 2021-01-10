@@ -153,8 +153,6 @@ def file_renamer(filename, logging_info):
     # If "chapter" is in the chapter substring
     try:
         if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
-            delimiter = manga_title.lower()
-            delimiter_index = len(manga_title) + 1
             raise MangaMatchedException()
 
         chapter_title = chapter_title.replace(' ', '')
@@ -177,7 +175,8 @@ def file_renamer(filename, logging_info):
         LOG.exception(ufe, extra=logging_info)
         return None
     except MangaMatchedException:
-        pass
+        delimiter = manga_title.lower()
+        delimiter_index = len(manga_title) + 1
 
     LOG.debug(f'delimiter: {delimiter}')
     LOG.debug(f'delimiter_index: {delimiter_index}')
