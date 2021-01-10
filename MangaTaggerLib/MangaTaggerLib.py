@@ -1,8 +1,7 @@
 import logging
-import os
 import time
 from datetime import datetime
-from ntpath import basename
+from pathlib import Path
 from requests.exceptions import ConnectionError
 from xml.etree.ElementTree import SubElement, Element, Comment, tostring
 from xml.dom.minidom import parseString
@@ -42,9 +41,10 @@ def main():
 
 
 def process_manga_chapter(file_path, event_id):
-    filename = basename(file_path)
-    directory_path = file_path.split(filename)[0]
-    directory_name = basename(directory_path[:-1])
+    file_path = Path(file_path)
+    filename = file_path.name
+    directory_path = file_path.parent
+    directory_name = file_path.parent.name
 
     logging_info = {
         'event_id': event_id,
@@ -67,26 +67,26 @@ def process_manga_chapter(file_path, event_id):
         LOG.warning(f'Manga Tagger was unable to process "{file_path}"', extra=logging_info)
         return None
 
-    manga_library_dir = f'{AppSettings.library_dir}\\{directory_name}'
+    manga_library_dir = Path(AppSettings.library_dir, directory_name)
     LOG.debug(f'Manga Library Directory: {manga_library_dir}')
 
-    if not os.path.exists(manga_library_dir):
+    if not manga_library_dir.exists():
         LOG.info(f'A directory for "{directory_name}" in "{AppSettings.library_dir}" does not exist; creating now '
                  f'and granting application permission to access it.')
-        os.mkdir(manga_library_dir)
+        manga_library_dir.mkdir()
         AppSettings.grant_permissions(manga_library_dir)
 
-    new_file_path = f'{manga_library_dir}\\{new_filename}'
+    new_file_path = Path(manga_library_dir, new_filename)
     LOG.debug(f'new_file_path: {new_file_path}')
 
-    LOG.info(f'Checking for current and previously processed files with filename "{basename(new_file_path)}"...',
+    LOG.info(f'Checking for current and previously processed files with filename "{new_filename}"...',
              extra=logging_info)
 
     if AppSettings.mode_settings is None or AppSettings.mode_settings['rename_file']:
         try:
             # Multithreading Optimization
             if new_file_path in CURRENTLY_PENDING_RENAME:
-                LOG.info(f'A file is currently being renamed under the filename "{basename(new_file_path)}". Locking '
+                LOG.info(f'A file is currently being renamed under the filename "{new_filename}". Locking '
                          f'{file_path} from further processing until this rename action is complete...',
                          extra=logging_info)
 
@@ -94,10 +94,10 @@ def process_manga_chapter(file_path, event_id):
                     time.sleep(1)
 
                 LOG.info(f'The file being renamed to "{new_file_path}" has been completed. Unlocking '
-                         f'"{basename(new_file_path)}" for file rename processing.', extra=logging_info)
+                         f'"{new_filename}" for file rename processing.', extra=logging_info)
             else:
                 LOG.info(f'No files currently currently being processed under the filename '
-                         f'"{basename(new_file_path)}". Locking new filename for processing...', extra=logging_info)
+                         f'"{new_filename}". Locking new filename for processing...', extra=logging_info)
                 CURRENTLY_PENDING_RENAME.add(new_file_path)
 
             rename_action(file_path, new_file_path, directory_name, manga_details[1], logging_info)
@@ -217,12 +217,12 @@ def file_renamer(filename, logging_info):
     return filename, chapter_number
 
 
-def rename_action(current_file_path, new_file_path, manga_title, chapter_number, logging_info):
+def rename_action(current_file_path: Path, new_file_path: Path, manga_title, chapter_number, logging_info):
     chapter_number = chapter_number.replace('.', '-')
     results = ProcFilesTable.search(manga_title, chapter_number)
     LOG.debug(f'Results: {results}')
 
-    # If the series has not been processed
+    # If the series OR the chapter has not been processed
     if results is None:
         LOG.info(f'"{manga_title}" chapter {chapter_number} has not been processed before. '
                  f'Proceeding with file rename...', extra=logging_info)
@@ -230,51 +230,47 @@ def rename_action(current_file_path, new_file_path, manga_title, chapter_number,
 
     else:
         versions = ['v2', 'v3', 'v4', 'v5']
-        try:
-            existing_old_filename = results['old_filename']
-            existing_current_filename = results['new_filename']
 
-            # If currently processing file has the same name as an existing file
-            if existing_current_filename == basename(new_file_path):
-                # If currently processing file has a version in it's filename
-                if any(version in basename(current_file_path).lower() for version in versions):
-                    # If the version is newer than the existing file
-                    if compare_versions(existing_old_filename, current_file_path):
-                        LOG.info(f'Newer version of "{manga_title}" chapter {chapter_number} has been found. Deleting '
-                                 f'existing file and proceeding with file rename...', extra=logging_info)
-                        os.remove(new_file_path)
-                        LOG.info(f'"{basename(new_file_path)}" has been deleted! Proceeding to rename new file...',
-                                 extra=logging_info)
-                        update_record_and_rename(results, current_file_path, new_file_path, logging_info)
-                    else:
-                        LOG.warning(f'"{basename(current_file_path)}" was not renamed due being the exact same as the '
-                                    f'existing chapter; file currently being processed will be deleted',
-                                    extra=logging_info)
-                        os.remove(current_file_path)
-                        raise FileUpdateNotRequiredError(basename(current_file_path))
-                # If the current file doesn't have a version in it's filename, but the existing file does
-                elif any(version in basename(existing_old_filename).lower() for version in versions):
-                    LOG.warning(f'"{basename(current_file_path)}" was not renamed due to not being an updated version '
-                                f'of the existing chapter; file currently being processed will be deleted',
-                                extra=logging_info)
-                    os.remove(current_file_path)
-                    raise FileUpdateNotRequiredError(basename(current_file_path))
-                # If all else fails
+        existing_old_filename = results['old_filename']
+        existing_current_filename = results['new_filename']
+
+        # If currently processing file has the same name as an existing file
+        if existing_current_filename == new_file_path.name:
+            # If currently processing file has a version in it's filename
+            if any(version in current_file_path.name.lower() for version in versions):
+                # If the version is newer than the existing file
+                if compare_versions(existing_old_filename, current_file_path.name):
+                    LOG.info(f'Newer version of "{manga_title}" chapter {chapter_number} has been found. Deleting '
+                             f'existing file and proceeding with file rename...', extra=logging_info)
+                    new_file_path.unlink()
+                    LOG.info(f'"{new_file_path.name}" has been deleted! Proceeding to rename new file...',
+                             extra=logging_info)
+                    update_record_and_rename(results, current_file_path, new_file_path, logging_info)
                 else:
-                    LOG.warning(f'No changes have been found for "{existing_current_filename}"; file currently being '
-                                f'processed will be deleted', extra=logging_info)
-                    os.remove(current_file_path)
-                    raise FileAlreadyProcessedError(basename(current_file_path))
-        except KeyError:
-            LOG.info(f'Series "{manga_title}" has been processed before, but chapter {chapter_number} has not. '
-                     f'Proceeding with file rename...', extra=logging_info)
-            insert_record_and_rename(current_file_path, new_file_path, manga_title, chapter_number, logging_info)
+                    LOG.warning(f'"{current_file_path.name}" was not renamed due being the exact same as the '
+                                f'existing chapter; file currently being processed will be deleted',
+                                extra=logging_info)
+                    current_file_path.unlink()
+                    raise FileUpdateNotRequiredError(current_file_path.name)
+            # If the current file doesn't have a version in it's filename, but the existing file does
+            elif any(version in existing_old_filename.lower() for version in versions):
+                LOG.warning(f'"{current_file_path.name}" was not renamed due to not being an updated version '
+                            f'of the existing chapter; file currently being processed will be deleted',
+                            extra=logging_info)
+                current_file_path.unlink()
+                raise FileUpdateNotRequiredError(current_file_path.name)
+            # If all else fails
+            else:
+                LOG.warning(f'No changes have been found for "{existing_current_filename}"; file currently being '
+                            f'processed will be deleted', extra=logging_info)
+                current_file_path.unlink()
+                raise FileAlreadyProcessedError(current_file_path.name)
 
-    LOG.info(f'"{basename(new_file_path)}" will be unlocked for any pending processes.', extra=logging_info)
+    LOG.info(f'"{new_file_path.name}" will be unlocked for any pending processes.', extra=logging_info)
     CURRENTLY_PENDING_RENAME.remove(new_file_path)
 
 
-def compare_versions(old_filename, new_filename):
+def compare_versions(old_filename: str, new_filename: str):
     old_version = 0
     new_version = 0
 
@@ -310,15 +306,15 @@ def compare_versions(old_filename, new_filename):
         return False
 
 
-def insert_record_and_rename(old_file_path, new_file_path, manga_title, chapter_number, logging_info):
-    os.rename(old_file_path, new_file_path)
-    LOG.info(f'"{basename(new_file_path).strip(".cbz")}" has been renamed.', extra=logging_info)
+def insert_record_and_rename(old_file_path: Path, new_file_path: Path, manga_title, chapter_number, logging_info):
+    old_file_path.rename(new_file_path)
+    LOG.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
 
     record = {
         "series_title": manga_title,
         "chapter_number": chapter_number,
-        "old_filename": basename(old_file_path),
-        "new_filename": basename(new_file_path),
+        "old_filename": old_file_path.name,
+        "new_filename": new_file_path.name,
         "process_date": datetime.now().date().strftime('%Y-%m-%d')
     }
 
@@ -328,13 +324,13 @@ def insert_record_and_rename(old_file_path, new_file_path, manga_title, chapter_
     ProcFilesTable.insert(record, logging_info)
 
 
-def update_record_and_rename(results, old_file_path, new_file_path, logging_info):
-    os.rename(old_file_path, new_file_path)
-    LOG.info(f'"{basename(new_file_path).strip(".cbz")}" has been renamed.', extra=logging_info)
+def update_record_and_rename(results, old_file_path: Path, new_file_path: Path, logging_info):
+    old_file_path.rename(new_file_path)
+    LOG.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
 
     record = {
         "$set": {
-            "old_filename": basename(old_file_path),
+            "old_filename": old_file_path.name,
             "update_date": datetime.now().date().strftime('%Y-%m-%d')
         }
     }

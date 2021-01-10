@@ -1,7 +1,7 @@
 import logging
 import time
 import uuid
-from ntpath import dirname, getsize
+from pathlib import Path
 from queue import Queue
 from threading import Thread
 from typing import List
@@ -137,8 +137,9 @@ class QueueWorker:
 
                 current_size = -1
                 try:
-                    while current_size != getsize(path):
-                        current_size = getsize(path)
+                    destination_size = Path(path).stat().st_size
+                    while current_size != destination_size:
+                        current_size = destination_size
                         time.sleep(1)
                 except FileNotFoundError as fnfe:
                     cls._log.exception(fnfe)
@@ -182,6 +183,6 @@ class SeriesHandler(PatternMatchingEventHandler):
         self._log.debug(f'Event Source Path: {event.src_path}')
         self._log.debug(f'Event Destination Path: {event.dest_path}')
 
-        if dirname(event.src_path) == dirname(event.dest_path) and '-.-' in event.dest_path:
+        if Path(event.src_path) == Path(event.dest_path) and '-.-' in event.dest_path:
             self.queue.put(QueueEvent(event))
         self._log.info(f'Moved event for "{event.dest_path}" will be added to the queue')

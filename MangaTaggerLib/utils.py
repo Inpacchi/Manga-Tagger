@@ -1,10 +1,10 @@
 import atexit
 import json
 import logging
-import os
 import subprocess
 import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
+from pathlib import Path
 
 import numpy
 from pythonjsonlogger import jsonlogger
@@ -28,11 +28,14 @@ class AppSettings:
 
     @classmethod
     def load(cls):
-        with open('settings.json') as settings_json:
-            settings = json.load(settings_json)
-
-        setup = ConfigParser()
-        setup.read('setup.cfg')
+        settings_location = Path(Path.cwd(), 'settings.json')
+        if Path(settings_location).exists():
+            with open(settings_location, 'r') as settings_json:
+                settings = json.load(settings_json)
+        else:
+            with open(settings_location, 'w+') as settings_json:
+                settings = cls.create_settings()
+                json.dump(settings, settings_json, indent=4)
 
         cls._initialize_logger(settings['logger'])
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
@@ -88,10 +91,10 @@ class AppSettings:
 
             cls.is_network_path = settings['application']['library']['is_network_path']
 
-            if not os.path.exists(cls.library_dir):
+            if not Path(cls.library_dir).exists():
                 cls._log.info(f'Library directory "{AppSettings.library_dir}" does not exist; creating now and '
                               f'granting application permission to access it.')
-                os.mkdir(cls.library_dir)
+                Path(cls.library_dir).mkdir()
                 cls.grant_permissions(cls.library_dir)
         else:
             cls._log.critical('Manga Tagger cannot function without a library directory for moving processed '
@@ -128,7 +131,7 @@ class AppSettings:
         cls._log.debug('Now setting Free Manga Downloader configuration...')
 
         # Load settings
-        with open(f'{fmd_dir}\\userdata\\settings.json') as fmd_settings:
+        with open(Path(fmd_dir, 'userdata', 'settings.json')) as fmd_settings:
             settings_json = json.load(fmd_settings)
         changes_made = False
 
@@ -150,15 +153,15 @@ class AppSettings:
 
         # DEVELOPMENT ONLY SETTING
         if download_dir is None:
-            QueueWorker.download_dir = settings_json['saveto']['SaveTo']
+            QueueWorker.download_dir = Path(settings_json['saveto']['SaveTo'])
             cls._log.debug(f'Download directory has been set as "{QueueWorker.download_dir}"')
         else:
-            QueueWorker.download_dir = download_dir
+            QueueWorker.download_dir = Path(download_dir)
             cls._log.debug(
                 f'Download directory has been overridden and set as "{QueueWorker.download_dir}"')
 
         if changes_made:
-            with open(f'{fmd_dir}\\userdata\\settings.json', 'w') as fmd_settings:
+            with open(Path(fmd_dir, 'userdata', 'settings.json')) as fmd_settings:
                 json.dump(settings_json, fmd_settings, indent=4)
                 cls._log.debug(f'Changes to the "settings.json" for Free Manga Downloader have been saved')
 
@@ -180,8 +183,8 @@ class AppSettings:
         logger.setLevel(logging_level)
 
         # Create log directory and allow the application access to it
-        if not os.path.exists(log_dir):
-            os.mkdir(log_dir)
+        if not Path(log_dir).exists():
+            Path(log_dir).mkdir()
             cls.grant_permissions(log_dir, False)
 
         # Console Logging
@@ -224,7 +227,7 @@ class AppSettings:
 
     @staticmethod
     def _create_rotating_file_handler(log_dir, extension, settings, encoder=None):
-        return RotatingFileHandler(f'{log_dir}\\MangaTagger.{extension}',
+        return RotatingFileHandler(Path(log_dir, f'MangaTagger.{extension}'),
                                    maxBytes=settings['max_size'],
                                    backupCount=settings['backup_count'],
                                    encoding=encoder)
@@ -243,6 +246,71 @@ class AppSettings:
         Database.close_connection()
 
         cls._log.info('Now exiting Manga Tagger')
+
+    @classmethod
+    def create_settings(cls):
+        return {
+            "application": {
+                "timezone": "America/New_York",
+                "library": {
+                    "dir": "C:\\Library",
+                    "is_network_path": False
+                },
+                "dry_run": {
+                    "enabled": False,
+                    "rename_file": False,
+                    "database_insert": False,
+                    "write_comicinfo": False
+                },
+                "multithreading": {
+                    "threads": 8,
+                    "max_queue_size": 0
+                }
+            },
+            "database": {
+                "database_name": "manga_tagger",
+                "host_address": "localhost",
+                "port": 27017,
+                "username": "manga_tagger",
+                "password": "Manga4LYFE",
+                "auth_source": "admin",
+                "server_selection_timeout_ms": 1
+            },
+            "logger": {
+                "logging_level": "info",
+                "log_dir": "logs",
+                "max_size": 10485760,
+                "backup_count": 5,
+                "console": {
+                    "enabled": False,
+                    "log_format": "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+                },
+                "file": {
+                    "enabled": True,
+                    "log_format": "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
+                },
+                "json": {
+                    "enabled": False,
+                    "log_format": "%(threadName)s %(thread)d %(asctime)s %(name)s %(levelname)s %(message)s"
+                },
+                "tcp": {
+                    "enabled": False,
+                    "host": "localhost",
+                    "port": 1798,
+                    "log_format": "%(threadName)s %(thread)d | %(asctime)s | %(name)s | %(levelname)s - %(message)s"
+                },
+                "json_tcp": {
+                    "enabled": False,
+                    "host": "localhost",
+                    "port": 1798,
+                    "log_format": "%(threadName)s %(thread)d %(asctime)s %(name)s %(levelname)s %(message)s"
+                }
+            },
+            "fmd": {
+                "fmd_dir": "C:\\Free Manga Downloader",
+                "download_dir": None
+            }
+        }
 
 
 def compare(s1, s2):
