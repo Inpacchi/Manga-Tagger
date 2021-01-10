@@ -95,7 +95,6 @@ class AppSettings:
                 cls._log.info(f'Library directory "{AppSettings.library_dir}" does not exist; creating now and '
                               f'granting application permission to access it.')
                 Path(cls.library_dir).mkdir()
-                cls.grant_permissions(cls.library_dir)
         else:
             cls._log.critical('Manga Tagger cannot function without a library directory for moving processed '
                               'files into. Configure one in the "settings.json" and try again.')
@@ -114,17 +113,6 @@ class AppSettings:
         # Register function to be run prior to application termination
         atexit.register(cls._exit_handler)
         cls._log.debug(f'{cls.__name__} class has been initialized')
-
-    @classmethod
-    def grant_permissions(cls, dir_name, print_output=True):
-        output = subprocess.check_output(['icacls', dir_name, '/grant:r', 'EVERYONE:(OI)(CI)MF'])
-        if print_output:
-            output = output.decode('utf-8').split(';')
-            output_2 = output[0].split('\r\n')
-
-            cls._log.info(output_2[0])
-            cls._log.info(output_2[1])
-            cls._log.info(output[1].strip('\r\n'))
 
     @classmethod
     def _initialize_fmd_settings(cls, fmd_dir, download_dir):
@@ -185,7 +173,6 @@ class AppSettings:
         # Create log directory and allow the application access to it
         if not Path(log_dir).exists():
             Path(log_dir).mkdir()
-            cls.grant_permissions(log_dir, False)
 
         # Console Logging
         if settings['console']['enabled']:
