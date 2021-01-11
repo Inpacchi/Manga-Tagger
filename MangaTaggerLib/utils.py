@@ -141,7 +141,15 @@ class AppSettings:
 
         # DEVELOPMENT ONLY SETTING
         if download_dir is None:
-            QueueWorker.download_dir = Path(settings_json['saveto']['SaveTo'])
+            download_dir = Path(settings_json['saveto']['SaveTo'])
+
+            if not download_dir.is_absolute():
+                cls._log.critical(f'"{download_dir}" is not a valid path. The download directory must be an '
+                                  f'absolute path, such as "C:\\Downloads". Please correct the "SaveTo" path '
+                                  f'in Free Manga Downloader before rerunning Manga Tagger.')
+                sys.exit(1)
+
+            QueueWorker.download_dir = download_dir
             cls._log.debug(f'Download directory has been set as "{QueueWorker.download_dir}"')
         else:
             QueueWorker.download_dir = Path(download_dir)
