@@ -435,7 +435,11 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
 def compare_titles(manga_title, titles: dict, logging_info):
     LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
 
+    romaji_found = False
+    english_found = False
+
     if 'romaji' in titles.keys():
+        romaji_found = True
         romaji_title = titles['romaji']
         romaji_comparison_value = compare(manga_title, romaji_title)
         logging_info['romaji_title'] = romaji_title
@@ -445,7 +449,9 @@ def compare_titles(manga_title, titles: dict, logging_info):
         if romaji_comparison_value > .9:
             LOG.info(f'Match found using titles "{romaji_title}"', extra=logging_info)
             return True
-    elif 'english' in titles.keys():
+
+    if 'english' in titles.keys():
+        english_found = True
         english_title = titles['english']
         english_comparison_value = compare(manga_title, english_title)
         logging_info['english_title'] = english_title
@@ -455,7 +461,11 @@ def compare_titles(manga_title, titles: dict, logging_info):
         if english_comparison_value > .9:
             LOG.info(f'Match found using titles "{english_title}"', extra=logging_info)
             return True
-    else:
+
+    if romaji_found and english_found:
+        return False
+
+    if not romaji_found and not english_found:
         LOG.warning('Both the Romaji and English titles were not found. Manga Tagger is not sure how to proceed;'
                     'suspending processing. Please log an issue for investigation.', extra=logging_info)
         return False
