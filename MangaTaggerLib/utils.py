@@ -1,7 +1,6 @@
 import atexit
 import json
 import logging
-import subprocess
 import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
 from pathlib import Path
