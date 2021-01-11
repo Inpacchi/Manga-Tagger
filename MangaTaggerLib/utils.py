@@ -34,7 +34,7 @@ class AppSettings:
                 settings = json.load(settings_json)
         else:
             with open(settings_location, 'w+') as settings_json:
-                settings = cls.create_settings()
+                settings = cls._create_settings()
                 json.dump(settings, settings_json, indent=4)
 
         cls._initialize_logger(settings['logger'])
@@ -83,6 +83,12 @@ class AppSettings:
             QueueWorker.max_queue_size = settings['application']['multithreading']['max_queue_size']
 
         cls._log.debug(f'Max Queue Size: {QueueWorker.max_queue_size}')
+
+        # Debug Mode - Prevent application from processing files
+        if settings['application']['debug_mode']:
+            QueueWorker._debug_mode = True
+
+        cls._log.debug(f'Debug Mode: {QueueWorker._debug_mode}')
 
         # Manga Library Configuration
         if settings['application']['library']['dir'] is not None:
@@ -246,7 +252,7 @@ class AppSettings:
         cls._log.info('Now exiting Manga Tagger')
 
     @classmethod
-    def create_settings(cls):
+    def _create_settings(cls):
         return {
             "application": {
                 "timezone": "America/New_York",

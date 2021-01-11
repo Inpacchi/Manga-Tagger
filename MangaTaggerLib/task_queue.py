@@ -68,6 +68,7 @@ class QueueWorker:
     _log: logging = None
     _worker_list: List[Thread] = None
     _running: bool = False
+    _debug_mode = False
 
     max_queue_size = None
     threads = None
@@ -83,7 +84,10 @@ class QueueWorker:
         cls._running = True
 
         for i in range(cls.threads):
-            worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
+            if not cls._debug_mode:
+                worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
+            else:
+                worker = Thread(target=cls.dummy_process, name=f'MTT-{i}', daemon=True)
             cls._log.debug(f'Worker thread {worker.name} has been initialized')
             cls._worker_list.append(worker)
 
@@ -148,6 +152,10 @@ class QueueWorker:
 
         while cls._running:
             time.sleep(1)
+
+    @classmethod
+    def dummy_process(cls):
+        pass
 
     @classmethod
     def process(cls):

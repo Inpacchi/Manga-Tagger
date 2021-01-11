@@ -1,5 +1,6 @@
 {
 	"application": {
+		"debug_mode": true,
 		"timezone": "America/New_York",
 		"library": {
 			"dir": "C:\\Library",
