@@ -3,7 +3,7 @@ import shutil
 import unittest
 from pathlib import Path
 from typing import List
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from MangaTaggerLib.MangaTaggerLib import file_renamer, rename_action
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError
