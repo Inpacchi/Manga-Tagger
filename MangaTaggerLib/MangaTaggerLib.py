@@ -40,8 +40,7 @@ def main():
     QueueWorker.run()
 
 
-def process_manga_chapter(file_path, event_id):
-    file_path = Path(file_path)
+def process_manga_chapter(file_path: Path, event_id):
     filename = file_path.name
     directory_path = file_path.parent
     directory_name = file_path.parent.name

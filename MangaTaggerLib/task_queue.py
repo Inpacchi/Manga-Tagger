@@ -18,16 +18,16 @@ class QueueEvent:
     def __init__(self, event, from_db=False):
         if not from_db:
             self.event_type = event.event_type
-            self.src_path = event.src_path
+            self.src_path = Path(event.src_path)
             try:
-                self.dest_path = event.dest_path
+                self.dest_path = Path(event.dest_path)
             except AttributeError:
                 pass
         else:
             self.event_type = event['event_type']
-            self.src_path = event['src_path']
+            self.src_path = Path(event['src_path'])
             try:
-                self.dest_path = event['dest_path']
+                self.dest_path = Path(event['dest_path'])
             except KeyError:
                 pass
 
@@ -36,6 +36,19 @@ class QueueEvent:
             return f'File {self.event_type} event at {self.src_path}'
         elif self.event_type == 'modified':
             return f'File {self.event_type} event at {self.dest_path}'
+
+    def dictionary(self):
+        ret_dict = {
+            'event_type': self.event_type,
+            'src_path': str(self.src_path.absolute())
+        }
+
+        try:
+            ret_dict['dest_path'] = str(self.dest_path.absolute())
+        except AttributeError:
+            pass
+
+        return ret_dict
 
 
 class QueueWorker:
@@ -125,19 +138,19 @@ class QueueWorker:
 
                 if event.event_type == 'created':
                     cls._log.info(f'Pulling "file {event.event_type}" event from the queue for "{event.src_path}"')
-                    path = event.src_path
+                    path = Path(event.src_path)
                 elif event.event_type == 'moved':
                     cls._log.info(f'Pulling "file {event.event_type}" event from the queue for "{event.dest_path}"')
-                    path = event.dest_path
+                    path = Path(event.dest_path)
                 else:
                     cls._log.error('Event was passed, but Manga Tagger does not know how to handle it. Please open an '
                                    'issue for further investigation.')
                     cls._queue.task_done()
-                    return 
+                    return
 
                 current_size = -1
                 try:
-                    destination_size = Path(path).stat().st_size
+                    destination_size = path.stat().st_size
                     while current_size != destination_size:
                         current_size = destination_size
                         time.sleep(1)

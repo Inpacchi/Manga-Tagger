@@ -235,7 +235,8 @@ class TaskQueueTable(Database):
         if not queue.empty():
             cls._log.info('Saving task queue...')
             while not queue.empty():
-                super(TaskQueueTable, cls).insert(queue.get().__dict__)
+                event = queue.get()
+                super(TaskQueueTable, cls).insert(event.dictionary())
 
     @classmethod
     def delete_all(cls):
