@@ -312,7 +312,7 @@ def insert_record_and_rename(old_file_path: Path, new_file_path: Path, manga_tit
         "chapter_number": chapter_number,
         "old_filename": old_file_path.name,
         "new_filename": new_file_path.name,
-        "process_date": datetime.now().date().strftime('%Y-%m-%d')
+        "process_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
     }
 
     LOG.debug(f'Record: {record}')
@@ -328,7 +328,7 @@ def update_record_and_rename(results, old_file_path: Path, new_file_path: Path, 
     record = {
         "$set": {
             "old_filename": old_file_path.name,
-            "update_date": datetime.now().date().strftime('%Y-%m-%d')
+            "update_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
         }
     }
     LOG.debug(f'Record: {record}')
