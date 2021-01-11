@@ -163,7 +163,7 @@ class QueueWorker:
             if not cls._queue.empty():
                 event = cls._queue.get()
 
-                if event.event_type == 'created':
+                if event.event_type in ('created', 'existing'):
                     cls._log.info(f'Pulling "file {event.event_type}" event from the queue for "{event.src_path}"')
                     path = Path(event.src_path)
                 elif event.event_type == 'moved':
