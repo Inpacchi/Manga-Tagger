@@ -119,7 +119,7 @@ class AppSettings:
         cls._log.debug('Now setting Free Manga Downloader configuration...')
 
         # Load settings
-        with open(Path(fmd_dir, 'userdata', 'settings.json')) as fmd_settings:
+        with open(Path(fmd_dir, 'userdata', 'settings.json'), 'r') as fmd_settings:
             settings_json = json.load(fmd_settings)
         changes_made = False
 
@@ -149,7 +149,7 @@ class AppSettings:
                 f'Download directory has been overridden and set as "{QueueWorker.download_dir}"')
 
         if changes_made:
-            with open(Path(fmd_dir, 'userdata', 'settings.json')) as fmd_settings:
+            with open(Path(fmd_dir, 'userdata', 'settings.json'), 'w') as fmd_settings:
                 json.dump(settings_json, fmd_settings, indent=4)
                 cls._log.debug(f'Changes to the "settings.json" for Free Manga Downloader have been saved')
 
