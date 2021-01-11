@@ -1,6 +1,7 @@
 import logging
 import time
 import uuid
+from enum import Enum
 from pathlib import Path
 from queue import Queue
 from threading import Thread
@@ -14,33 +15,43 @@ from MangaTaggerLib import MangaTaggerLib
 from MangaTaggerLib.database import TaskQueueTable
 
 
+class QueueEventOrigin(Enum):
+    WATCHDOG = 1
+    FROM_DB = 2
+    SCAN = 3
+
+
 class QueueEvent:
-    def __init__(self, event, from_db=False):
-        if not from_db:
+    def __init__(self, event, origin=QueueEventOrigin.WATCHDOG):
+        if origin == QueueEventOrigin.WATCHDOG:
             self.event_type = event.event_type
             self.src_path = Path(event.src_path)
             try:
                 self.dest_path = Path(event.dest_path)
             except AttributeError:
                 pass
-        else:
+        elif origin == QueueEventOrigin.FROM_DB:
             self.event_type = event['event_type']
             self.src_path = Path(event['src_path'])
             try:
                 self.dest_path = Path(event['dest_path'])
             except KeyError:
                 pass
+        elif origin == QueueEventOrigin.SCAN:
+            self.event_type = 'existing'
+            self.src_path = event
 
     def __str__(self):
-        if self.event_type == 'created':
-            return f'File {self.event_type} event at {self.src_path}'
+        if self.event_type in ('created', 'existing'):
+            return f'File {self.event_type} event at {self.src_path.absolute()}'
         elif self.event_type == 'modified':
-            return f'File {self.event_type} event at {self.dest_path}'
+            return f'File {self.event_type} event at {self.dest_path.absolute()}'
 
     def dictionary(self):
         ret_dict = {
             'event_type': self.event_type,
-            'src_path': str(self.src_path.absolute())
+            'src_path': str(self.src_path.absolute()),
+            'manga_chapter': str(self.src_path.name.strip('.cbz'))
         }
 
         try:
@@ -61,7 +72,8 @@ class QueueWorker:
     max_queue_size = None
     threads = None
     is_library_network_path = False
-    download_dir = None
+    download_dir: Path = None
+    task_list = {}
 
     @classmethod
     def initialize(cls):
@@ -84,11 +96,12 @@ class QueueWorker:
 
     @classmethod
     def load_task_queue(cls):
-        task_list = []
-        TaskQueueTable.load(task_list)
+        TaskQueueTable.load(cls.task_list)
 
-        for task in task_list:
-            cls._queue.put(QueueEvent(task, True))
+        for task in cls.task_list.values():
+            event = QueueEvent(task, QueueEventOrigin.FROM_DB)
+            cls._log.info(f'{event} has been added to the task queue')
+            cls._queue.put(event)
 
         TaskQueueTable.delete_all()
 
@@ -97,6 +110,12 @@ class QueueWorker:
         TaskQueueTable.save(cls._queue)
         with cls._queue.mutex:
             cls._queue.queue.clear()
+
+    @classmethod
+    def add_to_task_queue(cls, manga_chapter):
+        event = QueueEvent(manga_chapter, QueueEventOrigin.SCAN)
+        cls._log.info(f'{event} has been added to the task queue')
+        cls._queue.put(event)
 
     @classmethod
     def exit(cls):
@@ -188,7 +207,7 @@ class SeriesHandler(PatternMatchingEventHandler):
         self._log.debug(f'Event Type: {event.event_type}')
         self._log.debug(f'Event Path: {event.src_path}')
 
-        self.queue.put(QueueEvent(event))
+        self.queue.put(QueueEvent(event, QueueEventOrigin.WATCHDOG))
         self._log.info(f'Creation event for "{event.src_path}" will be added to the queue')
 
     def on_moved(self, event):
@@ -197,5 +216,5 @@ class SeriesHandler(PatternMatchingEventHandler):
         self._log.debug(f'Event Destination Path: {event.dest_path}')
 
         if Path(event.src_path) == Path(event.dest_path) and '-.-' in event.dest_path:
-            self.queue.put(QueueEvent(event))
+            self.queue.put(QueueEvent(event, QueueEventOrigin.WATCHDOG))
         self._log.info(f'Moved event for "{event.dest_path}" will be added to the queue')

@@ -107,6 +107,9 @@ class AppSettings:
         QueueWorker.initialize()
         QueueWorker.load_task_queue()
 
+        # Scan download directory for downloads not already in database upon loading
+        cls._scan_download_dir()
+
         # Initialize API
         AniList.initialize()
 
@@ -306,6 +309,13 @@ class AppSettings:
                 "download_dir": None
             }
         }
+
+    @classmethod
+    def _scan_download_dir(cls):
+        for directory in QueueWorker.download_dir.iterdir():
+            for manga_chapter in directory.glob('*.cbz'):
+                if manga_chapter.name.strip('.cbz') not in QueueWorker.task_list.keys():
+                    QueueWorker.add_to_task_queue(manga_chapter)
 
 
 def compare(s1, s2):

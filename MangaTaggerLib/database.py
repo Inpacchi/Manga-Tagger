@@ -222,13 +222,13 @@ class TaskQueueTable(Database):
         cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
-    def load(cls, task_list: list):
+    def load(cls, task_list: dict):
         cls._log.info('Loading task queue...')
         results = cls._database.find()
 
         if results is not None:
             for result in results:
-                task_list.append(result)
+                task_list[result['manga_chapter']] = result
 
     @classmethod
     def save(cls, queue):
