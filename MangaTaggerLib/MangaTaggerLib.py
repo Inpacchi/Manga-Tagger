@@ -70,8 +70,7 @@ def process_manga_chapter(file_path: Path, event_id):
     LOG.debug(f'Manga Library Directory: {manga_library_dir}')
 
     if not manga_library_dir.exists():
-        LOG.info(f'A directory for "{directory_name}" in "{AppSettings.library_dir}" does not exist; creating now '
-                 f'and granting application permission to access it.')
+        LOG.info(f'A directory for "{directory_name}" in "{AppSettings.library_dir}" does not exist; creating now.')
         manga_library_dir.mkdir()
 
     new_file_path = Path(manga_library_dir, new_filename)

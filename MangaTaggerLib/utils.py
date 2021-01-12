@@ -98,8 +98,7 @@ class AppSettings:
             cls.is_network_path = settings['application']['library']['is_network_path']
 
             if not Path(cls.library_dir).exists():
-                cls._log.info(f'Library directory "{AppSettings.library_dir}" does not exist; creating now and '
-                              f'granting application permission to access it.')
+                cls._log.info(f'Library directory "{AppSettings.library_dir}" does not exist; creating now.')
                 Path(cls.library_dir).mkdir()
         else:
             cls._log.critical('Manga Tagger cannot function without a library directory for moving processed '
