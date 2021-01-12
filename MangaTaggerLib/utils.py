@@ -4,6 +4,7 @@ import logging
 import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
 from pathlib import Path
+from tkinter import filedialog, Tk
 
 import numpy
 from pythonjsonlogger import jsonlogger
@@ -252,6 +253,9 @@ class AppSettings:
 
     @classmethod
     def _create_settings(cls):
+        Tk().withdraw()
+        fmd_dir = filedialog.askdirectory(title='Select the folder that Free Manga Downloader is installed in')
+
         return {
             "application": {
                 "timezone": "America/New_York",
@@ -310,7 +314,7 @@ class AppSettings:
                 }
             },
             "fmd": {
-                "fmd_dir": "C:\\Free Manga Downloader",
+                "fmd_dir": fmd_dir,
                 "download_dir": None
             }
         }
