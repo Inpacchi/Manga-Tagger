@@ -152,18 +152,18 @@ def file_renamer(filename, logging_info):
         if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
             raise MangaMatchedException()
 
-        chapter_title_search = chapter_title.replace(' ', '')
+        chapter_title = chapter_title.replace(' ', '')
 
-        if chapter_title_search.find('chapter') > -1:
+        if chapter_title.find('chapter') > -1:
             delimiter = 'chapter'
             delimiter_index = 7
-        elif chapter_title_search.find('ch.') > -1:
+        elif chapter_title.find('ch.') > -1:
             delimiter = 'ch.'
             delimiter_index = 3
-        elif chapter_title_search.find('ch') > -1:
+        elif chapter_title.find('ch') > -1:
             delimiter = 'ch'
             delimiter_index = 2
-        elif chapter_title_search.find('act') > -1:
+        elif chapter_title.find('act') > -1:
             delimiter = 'act'
             delimiter_index = 3
         else:
