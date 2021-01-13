@@ -1,7 +1,5 @@
 import logging
-import shutil
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 from MangaTaggerLib.api import AniList, MTJikan
@@ -11,21 +9,10 @@ from tests.database import MetadataTable as MetadataTableTest
 
 
 class TestMangaSearch(unittest.TestCase):
-    library_dir = Path('library')
-    current_file = None
-
     @classmethod
     def setUpClass(cls) -> None:
         logging.disable(logging.CRITICAL)
         AniList.initialize()
-        cls.current_file = Path(cls.library_dir, 'Absolute Boyfriend 001.cbz')
-
-    def setUp(self) -> None:
-        self.library_dir.mkdir()
-
-    def tearDown(self) -> None:
-        MTJikan().close()
-        shutil.rmtree(self.library_dir)
 
     @patch('MangaTaggerLib.MangaTaggerLib.CURRENTLY_PENDING_DB_SEARCH', new_callable=list)
     @patch('MangaTaggerLib.models.AppSettings')

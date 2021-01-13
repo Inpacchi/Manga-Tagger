@@ -65,9 +65,6 @@ class MTJikan(Jikan):
         search_results = super(MTJikan, self).manga(id, extension, page)
         self.session.close()
         return search_results
-    
-    def close(self):
-        self.session.close()
 
 
 class AniList:
