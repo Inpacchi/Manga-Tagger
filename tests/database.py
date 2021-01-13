@@ -25,3 +25,9 @@ class ProcFilesTable:
     @classmethod
     def search_return_no_results(cls, manga_title, chapter_number):
         return None
+
+
+class MetadataTable:
+    @classmethod
+    def search_return_no_results(cls, manga_title):
+        return None
