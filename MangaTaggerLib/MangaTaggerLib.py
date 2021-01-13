@@ -339,6 +339,7 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
     manga_search = None
     db_exists = True
     retries = 0
+    jikan_details = None
 
     LOG.info(f'Table search value is "{manga_title}"', extra=logging_info)
     while manga_search is None:
@@ -386,12 +387,36 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
                 if result['type'].lower() == 'manga':
                     try:
                         titles = AniList.search_for_manga_title_by_mal_id(result['mal_id'], logging_info)['title']
+                        logging_info['titles'] = titles
                     except TypeError:
                         continue
 
-                    if compare_titles(manga_title, titles, logging_info):
+                    comparison_value = compare_titles(manga_title, titles, logging_info)
+
+                    if any(comparison_value) > .8:
+                        LOG.info(f'Match found for {manga_title} using {titles} with 80% likelihood',
+                                 extra=logging_info)
                         manga_id = result['mal_id']
                         break
+                    elif any(comparison_value) > .5:
+                        jikan_details = MTJikan().manga(result['mal_id'])
+                        jikan_authors = jikan_details['authors']
+                        anilist_authors = AniList.search_staff_by_mal_id(result['mal_id'], logging_info)['staff']['edges']
+
+                        logging_info['jikan_authors'] = jikan_authors
+                        logging_info['anilist_authors'] = anilist_authors
+
+                        LOG.info(f'Match found for {manga_title} using {titles} with 50% likelihood; now checking '
+                                 f'authors for further veritifcation', extra=logging_info)
+
+                        if compare_authors(jikan_authors, anilist_authors, logging_info):
+                            LOG.info(f'Authors matched up for {manga_title}; proceeding with processing')
+                            manga_id = result['mal_id']
+                            break
+                    elif comparison_value == 0:
+                        LOG.warning('Both the Romaji and English titles were not found. Manga Tagger is not sure '
+                                    'how to proceed; suspending processing. Please log an issue for investigation.',
+                                    extra=logging_info)
             if manga_id is None:
                 raise MangaNotFoundError(manga_title)
         except MangaNotFoundError as mnfe:
@@ -401,7 +426,8 @@ def metadata_tagger(manga_file_path, manga_title, manga_chapter_number, logging_
         LOG.info(f'ID for "{manga_title}" found as "{manga_id}".', extra=logging_info)
 
         try:
-            jikan_details = MTJikan().manga(manga_id)
+            if jikan_details is None:
+                jikan_details = MTJikan().manga(manga_id)
         except (APIException, ConnectionError) as e:
             LOG.warning(e, extra=logging_info)
             LOG.warning('Manga Tagger has unintentionally breached the API limits on Jikan. Waiting 60s to clear '
@@ -435,38 +461,46 @@ def compare_titles(manga_title, titles: dict, logging_info):
 
     romaji_found = False
     english_found = False
+    romaji_comparison_value = 0
+    english_comparison_value = 0
 
     if 'romaji' in titles.keys():
         romaji_found = True
         romaji_title = titles['romaji']
         romaji_comparison_value = compare(manga_title, romaji_title)
         logging_info['romaji_title'] = romaji_title
+        logging_info['romaji_comparison_value'] = romaji_comparison_value
         LOG.debug(f'Romaji Title: {romaji_title}', extra=logging_info)
         LOG.debug(f'Romaji Comparison Value: {romaji_comparison_value}', extra=logging_info)
-
-        if romaji_comparison_value > .9:
-            LOG.info(f'Match found using titles "{romaji_title}"', extra=logging_info)
-            return True
 
     if 'english' in titles.keys():
         english_found = True
         english_title = titles['english']
         english_comparison_value = compare(manga_title, english_title)
         logging_info['english_title'] = english_title
+        logging_info['english_comparison_value'] = english_comparison_value
         LOG.debug(f'English Title: {english_title}', extra=logging_info)
         LOG.debug(f'English Comparison Value: {english_comparison_value}', extra=logging_info)
 
-        if english_comparison_value > .9:
-            LOG.info(f'Match found using titles "{english_title}"', extra=logging_info)
-            return True
-
-    if romaji_found and english_found:
-        return False
+    if romaji_found or english_found:
+        return romaji_comparison_value, english_comparison_value
 
     if not romaji_found and not english_found:
-        LOG.warning('Both the Romaji and English titles were not found. Manga Tagger is not sure how to proceed;'
-                    'suspending processing. Please log an issue for investigation.', extra=logging_info)
-        return False
+        return 0
+
+
+def compare_authors(jikan_authors, anilist_authors, logging_info):
+    for author_1 in jikan_authors:
+        if ',' in author_1['name']:
+            full_name_split = author_1['name'].split(', ')
+            author_1_name = f'{full_name_split[1]} {full_name_split[0]}'
+        else:
+            author_1_name = author_1['name']
+
+        for author_2 in anilist_authors:
+            if author_1_name == author_2['node']['name']['full']:
+                return True
+    return False
 
 
 def construct_comicinfo_xml(metadata, chapter_number, logging_info):
