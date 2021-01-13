@@ -223,7 +223,6 @@ def rename_action(current_file_path: Path, new_file_path: Path, manga_title, cha
         LOG.info(f'"{manga_title}" chapter {chapter_number} has not been processed before. '
                  f'Proceeding with file rename...', extra=logging_info)
         insert_record_and_rename(current_file_path, new_file_path, manga_title, chapter_number, logging_info)
-
     else:
         versions = ['v2', 'v3', 'v4', 'v5']
 

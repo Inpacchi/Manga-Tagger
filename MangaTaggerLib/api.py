@@ -18,32 +18,6 @@ class MTJikan(Jikan):
         self.calls_minute = 0
         self.last_api_call = datetime.now()
 
-    def search(
-            self,
-            search_type: str,
-            query: str,
-            page: Optional[int] = None,
-            parameters: Optional[Mapping[str, Optional[Union[int, str, float]]]] = None,
-    ) -> Dict[str, Any]:
-        self._check_rate_seconds()
-        self._check_rate_minutes()
-
-        self.calls_second += 1
-        self.calls_minute += 1
-        self.last_api_call = datetime.now()
-        return super(MTJikan, self).search(search_type, query, page, parameters)
-
-    def manga(
-            self, id: int, extension: Optional[str] = None, page: Optional[int] = None
-    ) -> Dict[str, Any]:
-        self._check_rate_seconds()
-        self._check_rate_minutes()
-
-        self.calls_second += 1
-        self.calls_minute += 1
-        self.last_api_call = datetime.now()
-        return super(MTJikan, self).manga(id, extension, page)
-
     # Rate Limit: 2 requests/second
     def _check_rate_seconds(self):
         last_api_call_delta = (datetime.now() - self.last_api_call).total_seconds()
@@ -61,6 +35,39 @@ class MTJikan(Jikan):
             time.sleep(61 - last_api_call_delta)
         elif last_api_call_delta > 60:
             self.calls_minute = 0
+
+    def search(
+            self,
+            search_type: str,
+            query: str,
+            page: Optional[int] = None,
+            parameters: Optional[Mapping[str, Optional[Union[int, str, float]]]] = None,
+    ) -> Dict[str, Any]:
+        self._check_rate_seconds()
+        self._check_rate_minutes()
+
+        self.calls_second += 1
+        self.calls_minute += 1
+        self.last_api_call = datetime.now()
+        search_results = super(MTJikan, self).search(search_type, query, page, parameters)
+        self.session.close()
+        return search_results
+
+    def manga(
+            self, id: int, extension: Optional[str] = None, page: Optional[int] = None
+    ) -> Dict[str, Any]:
+        self._check_rate_seconds()
+        self._check_rate_minutes()
+
+        self.calls_second += 1
+        self.calls_minute += 1
+        self.last_api_call = datetime.now()
+        search_results = super(MTJikan, self).manga(id, extension, page)
+        self.session.close()
+        return search_results
+    
+    def close(self):
+        self.session.close()
 
 
 class AniList:
