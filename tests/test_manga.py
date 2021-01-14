@@ -12,6 +12,7 @@ from tests.database import ProcFilesTable as ProcFilesTableTest
 
 class TestMangaRename(unittest.TestCase):
     correct_filename = 'Absolute Boyfriend 001.cbz'
+    special_filename = '.hackg.u.+ 001.cbz'
 
     def test_verify_filename_series_name(self):
         """
@@ -61,6 +62,13 @@ class TestMangaRename(unittest.TestCase):
         """
         filename = file_renamer('Absolute Boyfriend -.- Act 01 Lover Shop.cbz', {})[0]
         self.assertEqual(filename, self.correct_filename)
+
+    def test_verify_filename_special_characters(self):
+        """
+        Tests for "Act" as the delimiter in the filename.
+        """
+        filename = file_renamer('.hackg.u.+ -.- .hackg.u.+ Chapter 001.cbz', {})[0]
+        self.assertEqual(filename, self.special_filename)
 
 
 class TestMangaRenameAction(unittest.TestCase):

@@ -1,6 +1,7 @@
 import logging
 import time
 from datetime import datetime
+from os import path
 from pathlib import Path
 from requests.exceptions import ConnectionError
 from xml.etree.ElementTree import SubElement, Element, Comment, tostring
@@ -143,37 +144,44 @@ def file_renamer(filename, logging_info):
         return None
 
     manga_title: str = filename[0]
-    chapter_title: str = filename[1].strip('.cbz').lower()
+    chapter_title: str = path.splitext(filename[1].lower())[0]
     LOG.debug(f'manga_title: {manga_title}')
     LOG.debug(f'chapter: {chapter_title}')
 
     # If "chapter" is in the chapter substring
     try:
-        if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
-            raise MangaMatchedException()
+        if manga_title.lower() in chapter_title:
+            if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
+                raise MangaMatchedException()
 
         chapter_title = chapter_title.replace(' ', '')
 
-        if chapter_title.find('chapter') > -1:
+        if 'chapter' in chapter_title:
             delimiter = 'chapter'
             delimiter_index = 7
-        elif chapter_title.find('ch.') > -1:
+        elif 'ch.' in chapter_title:
             delimiter = 'ch.'
             delimiter_index = 3
-        elif chapter_title.find('ch') > -1:
+        elif'ch' in chapter_title:
             delimiter = 'ch'
             delimiter_index = 2
-        elif chapter_title.find('act') > -1:
+        elif 'act' in chapter_title:
             delimiter = 'act'
             delimiter_index = 3
+        #elif chapter_title.find('oneshot') > -1:
         else:
             raise UnparsableFilenameError(filename, 'ch/chapter')
     except UnparsableFilenameError as ufe:
         LOG.exception(ufe, extra=logging_info)
         return None
     except MangaMatchedException:
-        delimiter = manga_title.lower()
-        delimiter_index = len(manga_title) + 1
+        if 'chapter' in chapter_title:
+            chapter_title = chapter_title.replace(' ', '')
+            delimiter = f'{manga_title.lower()}chapter'
+            delimiter_index = len(delimiter) + 1
+        else:
+            delimiter = manga_title.lower()
+            delimiter_index = len(delimiter) + 1
 
     LOG.debug(f'delimiter: {delimiter}')
     LOG.debug(f'delimiter_index: {delimiter_index}')
