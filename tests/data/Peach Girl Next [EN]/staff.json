@@ -1,0 +1,21 @@
+{
+   "siteUrl":"https://anilist.co/manga/107413",
+   "staff":{
+      "edges":[
+         {
+            "node":{
+               "name":{
+                  "first":"Miwa",
+                  "last":"Ueda",
+                  "full":"Miwa Ueda",
+                  "alternative":[
+                     ""
+                  ]
+               },
+               "siteUrl":"https://anilist.co/staff/97435"
+            },
+            "role":"Story & Art"
+         }
+      ]
+   }
+}

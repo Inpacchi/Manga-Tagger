@@ -1,0 +1,109 @@
+{
+   "request_hash":"request:manga:0b9fc288612370334bcbb5d3e40b1244d210c1ef",
+   "request_cached":true,
+   "request_cache_expiry":50524,
+   "mal_id":100369,
+   "url":"https://myanimelist.net/manga/100369/Peach_Girl_Next",
+   "title":"Peach Girl Next",
+   "title_english":null,
+   "title_synonyms":[
+
+   ],
+   "title_japanese":"ピーチガールNEXT",
+   "status":"Finished",
+   "image_url":"https://cdn.myanimelist.net/images/manga/1/189744.jpg",
+   "type":"Manga",
+   "volumes":8,
+   "chapters":52,
+   "publishing":false,
+   "published":{
+      "from":"2016-08-12T00:00:00+00:00",
+      "to":"2019-12-28T00:00:00+00:00",
+      "prop":{
+         "from":{
+            "day":12,
+            "month":8,
+            "year":2016
+         },
+         "to":{
+            "day":28,
+            "month":12,
+            "year":2019
+         }
+      },
+      "string":"Aug  12, 2016 to Dec  28, 2019"
+   },
+   "rank":7754,
+   "score":6.99,
+   "scored_by":118,
+   "popularity":12903,
+   "members":689,
+   "favorites":7,
+   "synopsis":"Sequel to Peach Girl set 10 years after the original story.",
+   "background":"None",
+   "related":{
+      "Prequel":[
+         {
+            "mal_id":475,
+            "type":"manga",
+            "name":"Peach Girl",
+            "url":"https://myanimelist.net/manga/475/Peach_Girl"
+         }
+      ]
+   },
+   "genres":[
+      {
+         "mal_id":22,
+         "type":"manga",
+         "name":"Romance",
+         "url":"https://myanimelist.net/manga/genre/22/Romance"
+      },
+      {
+         "mal_id":25,
+         "type":"manga",
+         "name":"Shoujo",
+         "url":"https://myanimelist.net/manga/genre/25/Shoujo"
+      },
+      {
+         "mal_id":36,
+         "type":"manga",
+         "name":"Slice of Life",
+         "url":"https://myanimelist.net/manga/genre/36/Slice_of_Life"
+      }
+   ],
+   "authors":[
+      {
+         "mal_id":2435,
+         "type":"people",
+         "name":"Ueda, Miwa",
+         "url":"https://myanimelist.net/people/2435/Miwa_Ueda"
+      }
+   ],
+   "serializations":[
+      {
+         "mal_id":306,
+         "type":"manga",
+         "name":"Be-Love",
+         "url":"https://myanimelist.net/manga/magazine/306/Be-Love"
+      }
+   ],
+   "jikan_url":"https://api.jikan.moe/v3/manga/100369",
+   "headers":{
+      "Server":"nginx/1.18.0 (Ubuntu)",
+      "Date":"Thu, 14 Jan 2021 05:33:27 GMT",
+      "Content-Type":"application/json",
+      "Content-Length":"718",
+      "Connection":"keep-alive",
+      "Access-Control-Allow-Origin":"*",
+      "Access-Control-Allow-Methods":"*",
+      "Cache-Control":"private, must-revalidate",
+      "ETag":"\"2ab20cdcb6948cbbf7d70c166122d6aa\"",
+      "X-Request-Hash":"request:manga:0b9fc288612370334bcbb5d3e40b1244d210c1ef",
+      "X-Request-Cached":"1",
+      "X-Request-Cache-Ttl":"50524",
+      "Expires":"Thu, 14 Jan 2021 19:35:31 GMT",
+      "Content-Encoding":"gzip",
+      "Vary":"Accept-Encoding",
+      "X-Cache-Status":"EXPIRED"
+   }
+}

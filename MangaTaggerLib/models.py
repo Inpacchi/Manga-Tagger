@@ -150,3 +150,17 @@ class Metadata:
                 'mal_id': serialization['mal_id'],
                 'url': serialization['url']
             }
+
+    def test_value(self):
+        return {
+            'series_title': self.series_title,
+            'series_title_eng': self.series_title_eng,
+            'series_title_jap': self.series_title_jap,
+            'status': self.status,
+            'mal_url': self.mal_url,
+            'anilist_url': self.anilist_url,
+            'publish_date': self.publish_date,
+            'genres': self.genres,
+            'staff': self.staff,
+            'serializations': self.serializations
+        }

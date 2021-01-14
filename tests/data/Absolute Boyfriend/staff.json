@@ -1,0 +1,21 @@
+{
+   "siteUrl":"https://anilist.co/manga/30071",
+   "staff":{
+      "edges":[
+         {
+            "node":{
+               "name":{
+                  "first":"Yuu",
+                  "last":"Watase",
+                  "full":"Yuu Watase",
+                  "alternative":[
+                     ""
+                  ]
+               },
+               "siteUrl":"https://anilist.co/staff/96930"
+            },
+            "role":"Story & Art"
+         }
+      ]
+   }
+}

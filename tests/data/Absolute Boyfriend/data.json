@@ -1,0 +1,123 @@
+{
+   "request_hash":"request:manga:451d5111367dc08ef7270f88a3fdceabff18d176",
+   "request_cached":true,
+   "request_cache_expiry":60573,
+   "mal_id":71,
+   "url":"https://myanimelist.net/manga/71/Zettai_Kareshi",
+   "title":"Zettai Kareshi.",
+   "title_english":"Absolute Boyfriend",
+   "title_synonyms":[
+      "I Won't Let You Become a Star!",
+      "Ohoshisama ni wa Sasemasen!",
+      "Aromatic Boy",
+      "Shounen Aromatic"
+   ],
+   "title_japanese":"絶対彼氏。",
+   "status":"Finished",
+   "image_url":"https://cdn.myanimelist.net/images/manga/1/185981.jpg",
+   "type":"Manga",
+   "volumes":6,
+   "chapters":35,
+   "publishing":false,
+   "published":{
+      "from":"2003-05-20T00:00:00+00:00",
+      "to":"2004-10-05T00:00:00+00:00",
+      "prop":{
+         "from":{
+            "day":20,
+            "month":5,
+            "year":2003
+         },
+         "to":{
+            "day":5,
+            "month":10,
+            "year":2004
+         }
+      },
+      "string":"May  20, 2003 to Oct  5, 2004"
+   },
+   "rank":1381,
+   "score":7.73,
+   "scored_by":20661,
+   "popularity":285,
+   "members":34656,
+   "favorites":1795,
+   "synopsis":"High school student Riiko Izawa has gone through a series of unrequited crushes. Each time she works up the courage to confess to a boy, he rejects her on the spot. After yet another rejection, Riiko becomes dejected and takes a walk through a nearby park. There, she discovers a lost phone and returns it to its owner. The owner of the phone, Gaku Namikiri, is bizarre, to say the least. A traveling salesman, he pesters Riiko to accept one of his company\\'s products as a reward. She tells him, sarcastically, that what she wants most of all is a boyfriend. Unfazed, he directs her to visit a website advertising \"lover figures,\" which she assumes to be dolls. Despite her skepticism about the company\\'s integrity, the face of the \"Nightly Series 01\" model enchants Riiko, and she registers for a three-day free trial. She is shocked when a life-sized naked boy is actually delivered to her the next day! Riiko follows instructions to activate the very realistic robot with a kiss, and for the next three days, Night Tenjou is the best boyfriend she could ask for. However, Gaku reappears to inform her that she missed the deadline to cancel the free trial, and now she owes one hundred million yen. Alternatively, she can decide to keep Night and act as a beta tester so that the company can collect data in order to improve their future products. What choice does Riiko have? She is broke, and what\\'s more, she has already begun to fall for the artificially intelligent Night... [Written by MAL Rewrite]",
+   "background":"Released in North America under the title Absolute Boyfriend, Zettai Kareshi. has spawned several live-action adaptations. A Japanese drama series, Zettai Kareshi: Kanzen Muketsu no Koibito Robot, aired in 2008; a Taiwanese drama series, Jue Dui Darling, aired in 2012; and most recently a South Korean drama series, My Absolute Boyfriend , aired in 2019.",
+   "related":{
+
+   },
+   "genres":[
+      {
+         "mal_id":4,
+         "type":"manga",
+         "name":"Comedy",
+         "url":"https://myanimelist.net/manga/genre/4/Comedy"
+      },
+      {
+         "mal_id":8,
+         "type":"manga",
+         "name":"Drama",
+         "url":"https://myanimelist.net/manga/genre/8/Drama"
+      },
+      {
+         "mal_id":22,
+         "type":"manga",
+         "name":"Romance",
+         "url":"https://myanimelist.net/manga/genre/22/Romance"
+      },
+      {
+         "mal_id":23,
+         "type":"manga",
+         "name":"School",
+         "url":"https://myanimelist.net/manga/genre/23/School"
+      },
+      {
+         "mal_id":24,
+         "type":"manga",
+         "name":"Sci-Fi",
+         "url":"https://myanimelist.net/manga/genre/24/Sci-Fi"
+      },
+      {
+         "mal_id":25,
+         "type":"manga",
+         "name":"Shoujo",
+         "url":"https://myanimelist.net/manga/genre/25/Shoujo"
+      }
+   ],
+   "authors":[
+      {
+         "mal_id":1930,
+         "type":"people",
+         "name":"Watase, Yuu",
+         "url":"https://myanimelist.net/people/1930/Yuu_Watase"
+      }
+   ],
+   "serializations":[
+      {
+         "mal_id":22,
+         "type":"manga",
+         "name":"Sho-Comi",
+         "url":"https://myanimelist.net/manga/magazine/22/Sho-Comi"
+      }
+   ],
+   "jikan_url":"https://api.jikan.moe/v3/manga/71",
+   "headers":{
+      "Server":"nginx/1.18.0 (Ubuntu)",
+      "Date":"Thu, 14 Jan 2021 05:20:30 GMT",
+      "Content-Type":"application/json",
+      "Content-Length":"1754",
+      "Connection":"keep-alive",
+      "Access-Control-Allow-Origin":"*",
+      "Access-Control-Allow-Methods":"*",
+      "Cache-Control":"private, must-revalidate",
+      "ETag":"\"7f765cb1d857c7c7d4e524d651dfaf7d\"",
+      "X-Request-Hash":"request:manga:451d5111367dc08ef7270f88a3fdceabff18d176",
+      "X-Request-Cached":"1",
+      "X-Request-Cache-Ttl":"60573",
+      "Expires":"Thu, 14 Jan 2021 22:10:03 GMT",
+      "Content-Encoding":"gzip",
+      "Vary":"Accept-Encoding",
+      "X-Cache-Status":"EXPIRED"
+   }
+}
