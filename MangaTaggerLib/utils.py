@@ -278,6 +278,7 @@ class AppSettings:
 
         return {
             "application": {
+                "debug_mode": False,
                 "timezone": "America/New_York",
                 "library": {
                     "dir": "C:\\Library",
@@ -309,7 +310,7 @@ class AppSettings:
                 "max_size": 10485760,
                 "backup_count": 5,
                 "console": {
-                    "enabled": False,
+                    "enabled": True,
                     "log_format": "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
                 },
                 "file": {
