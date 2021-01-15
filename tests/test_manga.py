@@ -65,7 +65,7 @@ class TestMangaRename(unittest.TestCase):
 
     def test_verify_filename_special_characters(self):
         """
-        Tests for "Act" as the delimiter in the filename.
+        Tests for special characters in the chapter title portion of the filename.
         """
         filename = file_renamer('.hackg.u.+ -.- .hackg.u.+ Chapter 001.cbz', {})[0]
         self.assertEqual(filename, self.special_filename)
