@@ -1,0 +1,121 @@
+{
+   "request_hash":"request:manga:cc3a141062b52caec96c97984d01ac1cf185e4c9",
+   "request_cached":true,
+   "request_cache_expiry":71966,
+   "mal_id":21600,
+   "url":"https://myanimelist.net/manga/21600/G-Maru_Edition",
+   "title":"G-Maru Edition",
+   "title_english":"None",
+   "title_synonyms":[
+      "(G) Edition",
+      "Ⓖ Edition"
+   ],
+   "title_japanese":"ジーまるえでぃしょん",
+   "status":"Finished",
+   "image_url":"https://cdn.myanimelist.net/images/manga/3/70733.jpg",
+   "type":"Manga",
+   "volumes":2,
+   "chapters":16,
+   "publishing":false,
+   "published":{
+      "from":"2010-05-19T00:00:00+00:00",
+      "to":"2012-12-19T00:00:00+00:00",
+      "prop":{
+         "from":{
+            "day":19,
+            "month":5,
+            "year":2010
+         },
+         "to":{
+            "day":19,
+            "month":12,
+            "year":2012
+         }
+      },
+      "string":"May  19, 2010 to Dec  19, 2012"
+   },
+   "rank":12396,
+   "score":6.45,
+   "scored_by":1539,
+   "popularity":3651,
+   "members":3462,
+   "favorites":20,
+   "synopsis":"Kaburagi Aruto, an average high school student, wishes to become a Shoujo manga artist. One day, she is visited by something from the future. He tells her that she now has to become an amazing ero-manga artist.",
+   "background":"G-Maru Edition was published in Italian by Panini Comics under the Planet Manga imprint from November 15, 2014 to January 17, 2015.",
+   "related":{
+
+   },
+   "genres":[
+      {
+         "mal_id":4,
+         "type":"manga",
+         "name":"Comedy",
+         "url":"https://myanimelist.net/manga/genre/4/Comedy"
+      },
+      {
+         "mal_id":9,
+         "type":"manga",
+         "name":"Ecchi",
+         "url":"https://myanimelist.net/manga/genre/9/Ecchi"
+      },
+      {
+         "mal_id":23,
+         "type":"manga",
+         "name":"School",
+         "url":"https://myanimelist.net/manga/genre/23/School"
+      },
+      {
+         "mal_id":24,
+         "type":"manga",
+         "name":"Sci-Fi",
+         "url":"https://myanimelist.net/manga/genre/24/Sci-Fi"
+      },
+      {
+         "mal_id":27,
+         "type":"manga",
+         "name":"Shounen",
+         "url":"https://myanimelist.net/manga/genre/27/Shounen"
+      },
+      {
+         "mal_id":37,
+         "type":"manga",
+         "name":"Supernatural",
+         "url":"https://myanimelist.net/manga/genre/37/Supernatural"
+      }
+   ],
+   "authors":[
+      {
+         "mal_id":1905,
+         "type":"people",
+         "name":"Kawashita, Mizuki",
+         "url":"https://myanimelist.net/people/1905/Mizuki_Kawashita"
+      }
+   ],
+   "serializations":[
+      {
+         "mal_id":484,
+         "type":"manga",
+         "name":"Jump SQ.19",
+         "url":"https://myanimelist.net/manga/magazine/484/Jump_SQ19"
+      }
+   ],
+   "jikan_url":"https://api.jikan.moe/v3/manga/21600",
+   "headers":{
+      "Server":"nginx/1.18.0 (Ubuntu)",
+      "Date":"Fri, 15 Jan 2021 02:40:32 GMT",
+      "Content-Type":"application/json",
+      "Content-Length":"925",
+      "Connection":"keep-alive",
+      "Access-Control-Allow-Origin":"*",
+      "Access-Control-Allow-Methods":"*",
+      "Cache-Control":"private, must-revalidate",
+      "ETag":"\"5145be06be8dc8377f7993d4afa58ec1\"",
+      "X-Request-Hash":"request:manga:cc3a141062b52caec96c97984d01ac1cf185e4c9",
+      "X-Request-Cached":"1",
+      "X-Request-Cache-Ttl":"71966",
+      "Expires":"Fri, 15 Jan 2021 22:39:58 GMT",
+      "Content-Encoding":"gzip",
+      "Vary":"Accept-Encoding",
+      "X-Cache-Status":"MISS"
+   }
+}

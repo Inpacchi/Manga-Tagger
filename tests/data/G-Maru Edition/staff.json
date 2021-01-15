@@ -1,0 +1,21 @@
+{
+   "siteUrl":"https://anilist.co/manga/51600",
+   "staff":{
+      "edges":[
+         {
+            "node":{
+               "name":{
+                  "first":"Mizuki",
+                  "last":"Kawashita",
+                  "full":"Mizuki Kawashita",
+                  "alternative":[
+                     ""
+                  ]
+               },
+               "siteUrl":"https://anilist.co/staff/96905"
+            },
+            "role":"Story & Art"
+         }
+      ]
+   }
+}
