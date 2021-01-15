@@ -32,7 +32,7 @@ def main():
     LOG.info(f'Starting Manga Tagger - Version {__version__}')
     LOG.debug('RUNNING IN DEBUG MODE')
 
-    if AppSettings.mode_settings is not None:
+    if AppSettings.mode_settings != {}:
         LOG.info('DRY RUN MODE ENABLED')
         LOG.info(f"MetadataTable Insertion: {AppSettings.mode_settings['database_insert']}")
         LOG.info(f"Renaming Files: {AppSettings.mode_settings['rename_file']}")
