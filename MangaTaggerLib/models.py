@@ -20,49 +20,64 @@ class Metadata:
         Metadata._log.info(f'Creating Metadata model for series "{manga_title}"...', extra=logging_info)
 
         if jikan_details and anilist_details:  # If details are grabbed from Jikan and Anilist APIs
-            self._id = jikan_details['mal_id']
-            self.series_title = jikan_details['title']
-            self.series_title_eng = jikan_details['title_english']
-            self.series_title_jap = jikan_details['title_japanese']
-            self.status = jikan_details['status']
-            self.type = jikan_details['type']
-            self.description = jikan_details['synopsis']
-            self.mal_url = jikan_details['url']
-            self.anilist_url = anilist_details['siteUrl']
-            self.publish_date = None
-            self.genres = []
-            self.staff = {}
-            self.serializations = {}
-
-            self._construct_publish_date(jikan_details['published']['from'])
-            self._parse_genres(jikan_details['genres'], logging_info)
-            self._parse_staff(anilist_details['staff']['edges'], jikan_details['authors'], logging_info)
-            self._parse_serializations(jikan_details['serializations'], logging_info)
-
-            # self.scrape_date = datetime.now().date().strftime('%Y-%m-%d %I:%M %p')
-            self.scrape_date = timezone(AppSettings.timezone).localize(datetime.now()).strftime('%Y-%m-%d %I:%M %p %Z')
+            self._construct_api_metadata(jikan_details, anilist_details, logging_info)
         elif details:  # If details were stored in the database
-            self._id = details['_id']
-            self.series_title = details['series_title']
-            self.series_title_eng = details['series_title_eng']
-            self.series_title_jap = details['series_title_jap']
-            self.status = details['status']
-            self.type = details['type']
-            self.description = details['description']
-            self.mal_url = details['mal_url']
-            self.anilist_url = details['anilist_url']
-            self.publish_date = details['publish_date']
-            self.genres = details['genres']
-            self.staff = details['staff']
-            self.serializations = details['serializations']
-            self.publish_date = details['publish_date']
-            self.scrape_date = details['scrape_date']
+            self._construct_database_metadata(details)
         else:
             Metadata._log.exception(MetadataNotCompleteError, extra=logging_info)
         Metadata._log.debug(f'{self.search_value} Metadata Model: {self.__dict__.__str__()}')
 
         logging_info['metadata'] = self.__dict__
         Metadata._log.info('Successfully created Metadata model.', extra=logging_info)
+
+    def _construct_api_metadata(self, jikan_details, anilist_details, logging_info):
+        self._id = jikan_details['mal_id']
+        self.series_title = jikan_details['title']
+
+        if jikan_details['title_english'] == 'None' or jikan_details['title_english'] is None:
+            self.series_title_eng = None
+        else:
+            self.series_title_eng = jikan_details['title_english']
+
+        if jikan_details['title_japanese'] == 'None' or jikan_details['title_japanese'] is None:
+            self.series_title_jap = None
+        else:
+            self.series_title_jap = jikan_details['title_japanese']
+
+        self.status = jikan_details['status']
+        self.type = jikan_details['type']
+        self.description = jikan_details['synopsis']
+        self.mal_url = jikan_details['url']
+        self.anilist_url = anilist_details['siteUrl']
+        self.publish_date = None
+        self.genres = []
+        self.staff = {}
+        self.serializations = {}
+
+        self._construct_publish_date(jikan_details['published']['from'])
+        self._parse_genres(jikan_details['genres'], logging_info)
+        self._parse_staff(anilist_details['staff']['edges'], jikan_details['authors'], logging_info)
+        self._parse_serializations(jikan_details['serializations'], logging_info)
+
+        # self.scrape_date = datetime.now().date().strftime('%Y-%m-%d %I:%M %p')
+        self.scrape_date = timezone(AppSettings.timezone).localize(datetime.now()).strftime('%Y-%m-%d %I:%M %p %Z')
+
+    def _construct_database_metadata(self, details):
+        self._id = details['_id']
+        self.series_title = details['series_title']
+        self.series_title_eng = details['series_title_eng']
+        self.series_title_jap = details['series_title_jap']
+        self.status = details['status']
+        self.type = details['type']
+        self.description = details['description']
+        self.mal_url = details['mal_url']
+        self.anilist_url = details['anilist_url']
+        self.publish_date = details['publish_date']
+        self.genres = details['genres']
+        self.staff = details['staff']
+        self.serializations = details['serializations']
+        self.publish_date = details['publish_date']
+        self.scrape_date = details['scrape_date']
 
     def _construct_publish_date(self, date):
         date = date[:date.index('T')]

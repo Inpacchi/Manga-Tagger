@@ -162,7 +162,7 @@ def file_renamer(filename, logging_info):
         elif 'ch.' in chapter_title:
             delimiter = 'ch.'
             delimiter_index = 3
-        elif'ch' in chapter_title:
+        elif 'ch' in chapter_title:
             delimiter = 'ch'
             delimiter_index = 2
         elif 'act' in chapter_title:
@@ -347,7 +347,6 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
     manga_search = None
     db_exists = True
     retries = 0
-    jikan_details = None
 
     LOG.info(f'Table search value is "{manga_title}"', extra=logging_info)
     while manga_search is None:
@@ -388,60 +387,58 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         manga_metadata = Metadata(manga_title, logging_info, details=manga_search)
         logging_info['metadata'] = manga_metadata.__dict__
     else:
+        manga_found = False
         try:
-            manga_id = None
-
             for result in manga_search['results']:
                 if result['type'].lower() == 'manga':
-                    try:
-                        titles = AniList.search_for_manga_title_by_mal_id(result['mal_id'], logging_info)['title']
-                        logging_info['titles'] = titles
-                    except TypeError:
-                        continue
+                    manga_id = result['mal_id']
+                    anilist_titles = construct_anilist_titles(
+                        AniList.search_for_manga_title_by_mal_id(manga_id, logging_info)['title'])
+                    logging_info['anilist_titles'] = anilist_titles
 
-                    comparison_value = compare_titles(manga_title, titles, logging_info)
+                    try:
+                        jikan_details = MTJikan().manga(manga_id)
+                    except (APIException, ConnectionError) as e:
+                        LOG.warning(e, extra=logging_info)
+                        LOG.warning(
+                            'Manga Tagger has unintentionally breached the API limits on Jikan. Waiting 60s to clear '
+                            'all rate limiting limits...')
+                        time.sleep(60)
+                        jikan_details = MTJikan().manga(manga_id)
+
+                    jikan_titles = construct_jikan_titles(jikan_details)
+                    logging_info['jikan_titles'] = jikan_titles
+
+                    LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
+                    comparison_value = compare_titles(jikan_titles, anilist_titles, logging_info)
 
                     if any(comparison_value) > .8:
-                        LOG.info(f'Match found for {manga_title} using {titles} with 80% likelihood',
-                                 extra=logging_info)
-                        manga_id = result['mal_id']
+                        LOG.info(f'Match found for {manga_title}', extra=logging_info)
+                        manga_found = True
                         break
                     elif any(comparison_value) > .5:
                         jikan_details = MTJikan().manga(result['mal_id'])
                         jikan_authors = jikan_details['authors']
-                        anilist_authors = AniList.search_staff_by_mal_id(result['mal_id'], logging_info)['staff']['edges']
+                        anilist_authors = AniList.search_staff_by_mal_id(result['mal_id'],
+                                                                         logging_info)['staff']['edges']
 
                         logging_info['jikan_authors'] = jikan_authors
                         logging_info['anilist_authors'] = anilist_authors
 
-                        LOG.info(f'Match found for {manga_title} using {titles} with 50% likelihood; now checking '
+                        LOG.info(f'Match found for {manga_title} with 50% likelihood; now checking '
                                  f'authors for further veritifcation', extra=logging_info)
 
                         if compare_authors(jikan_authors, anilist_authors, logging_info):
                             LOG.info(f'Authors matched up for {manga_title}; proceeding with processing')
-                            manga_id = result['mal_id']
+                            manga_found = True
                             break
-                    elif comparison_value == 0:
-                        LOG.warning('Both the Romaji and English titles were not found. Manga Tagger is not sure '
-                                    'how to proceed; suspending processing. Please log an issue for investigation.',
-                                    extra=logging_info)
-            if manga_id is None:
+            if not manga_found:
                 raise MangaNotFoundError(manga_title)
         except MangaNotFoundError as mnfe:
             LOG.exception(mnfe, extra=logging_info)
             return
 
         LOG.info(f'ID for "{manga_title}" found as "{manga_id}".', extra=logging_info)
-
-        try:
-            if jikan_details is None:
-                jikan_details = MTJikan().manga(manga_id)
-        except (APIException, ConnectionError) as e:
-            LOG.warning(e, extra=logging_info)
-            LOG.warning('Manga Tagger has unintentionally breached the API limits on Jikan. Waiting 60s to clear '
-                        'all rate limiting limits...')
-            time.sleep(60)
-            jikan_details = MTJikan().manga(manga_id)
 
         anilist_details = AniList.search_staff_by_mal_id(manga_id, logging_info)
         LOG.debug(f'jikan_details: {jikan_details}')
@@ -451,7 +448,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         logging_info['metadata'] = manga_metadata.__dict__
 
         if AppSettings.mode_settings == {} or ('database_insert' in AppSettings.mode_settings.keys()
-                                            and AppSettings.mode_settings['database_insert']):
+                                               and AppSettings.mode_settings['database_insert']):
             MetadataTable.insert(manga_metadata, logging_info)
 
         LOG.info(f'Retrieved metadata for "{manga_title}" from the Anilist and MyAnimeList APIs; '
@@ -460,44 +457,59 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         CURRENTLY_PENDING_DB_SEARCH.remove(manga_title)
 
     if AppSettings.mode_settings == {} or ('write_comicinfo' in AppSettings.mode_settings.keys()
-                                            and AppSettings.mode_settings['write_comicinfo']):
+                                           and AppSettings.mode_settings['write_comicinfo']):
         comicinfo_xml = construct_comicinfo_xml(manga_metadata, manga_chapter_number, logging_info)
         reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info)
 
     return manga_metadata
 
 
-def compare_titles(manga_title, titles: dict, logging_info):
-    LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
+def construct_jikan_titles(jikan_details):
+    jikan_titles = {
+        'title': jikan_details['title']
+    }
 
-    romaji_found = False
-    english_found = False
-    romaji_comparison_value = 0
-    english_comparison_value = 0
+    if jikan_details['title_english'] is not None:
+        jikan_titles['title_english'] = jikan_details['title_english']
 
-    if 'romaji' in titles.keys():
-        romaji_found = True
-        romaji_title = titles['romaji']
-        romaji_comparison_value = compare(manga_title, romaji_title)
-        logging_info['romaji_title'] = romaji_title
-        logging_info['romaji_comparison_value'] = romaji_comparison_value
-        LOG.debug(f'Romaji Title: {romaji_title}', extra=logging_info)
-        LOG.debug(f'Romaji Comparison Value: {romaji_comparison_value}', extra=logging_info)
+    if jikan_details['title_japanese'] is not None:
+        jikan_titles['title_japanese'] = jikan_details['title_japanese']
 
-    if 'english' in titles.keys():
-        english_found = True
-        english_title = titles['english']
-        english_comparison_value = compare(manga_title, english_title)
-        logging_info['english_title'] = english_title
-        logging_info['english_comparison_value'] = english_comparison_value
-        LOG.debug(f'English Title: {english_title}', extra=logging_info)
-        LOG.debug(f'English Comparison Value: {english_comparison_value}', extra=logging_info)
+    if not jikan_details['title_synonyms']:
+        i = 1
+        for title in jikan_details['title_synonyms']:
+            jikan_titles[f'title_{i}'] = title
+            i += 1
 
-    if romaji_found or english_found:
-        return romaji_comparison_value, english_comparison_value
+    return jikan_titles
 
-    if not romaji_found and not english_found:
-        return 0
+
+def construct_anilist_titles(anilist_details):
+    anilist_titles = {}
+
+    if anilist_details['romaji'] is not None:
+        anilist_titles['romaji'] = anilist_details['romaji']
+
+    if anilist_details['english'] is not None:
+        anilist_titles['english'] = anilist_details['english']
+
+    if anilist_details['native'] is not None:
+        anilist_titles['native'] = anilist_details['native']
+
+    return anilist_titles
+
+
+def compare_titles(jikan_titles: dict, anilist_titles: dict, logging_info):
+    comparison_values = []
+
+    for jikan_key in jikan_titles.keys():
+        for anilist_key in anilist_titles.keys():
+            comparison_values.append(compare(jikan_titles[jikan_key], anilist_titles[anilist_key]))
+
+    logging_info['comparison_values'] = comparison_values
+    LOG.debug(f'comparison_values: {comparison_values}', extra=logging_info)
+
+    return comparison_values
 
 
 def compare_authors(jikan_authors, anilist_authors, logging_info):

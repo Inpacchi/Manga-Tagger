@@ -128,6 +128,7 @@ class AniList:
             title {
               romaji
               english
+              native
             }
           }
         }
