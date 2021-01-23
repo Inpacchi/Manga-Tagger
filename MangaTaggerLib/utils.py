@@ -1,6 +1,8 @@
 import atexit
 import json
 import logging
+import os
+import signal
 import subprocess
 import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
@@ -8,6 +10,7 @@ from pathlib import Path
 from tkinter import filedialog, Tk
 
 import numpy
+import psutil
 from pythonjsonlogger import jsonlogger
 
 from MangaTaggerLib.database import Database
@@ -125,16 +128,29 @@ class AppSettings:
 
     @classmethod
     def _initialize_fmd_settings(cls, fmd_dir, download_dir):
-        cls._log.debug('Now setting Free Manga Downloader configuration...')
+        cls._log.info('Now setting Free Manga Downloader configuration settings...')
 
         fmd_settings_path = Path(fmd_dir, 'userdata', 'settings.json')
 
-        # If FMD has not been started, start and stop it to generate the settings.json, then set download path
+        # If FMD is running, stop it
+        for process in psutil.process_iter():
+            if 'fmd.exe' == process.name():
+                cls._log.info('Free Manga Downloader is currently running and must be closed for Manga Tagger to '
+                              'initialize the FMD settings properly.')
+                process.terminate()
+
+        # If FMD settings has not been initialized, start and stop FMD to generate the settings.json file, so that we
+        # can then set the download path
         if not fmd_settings_path.exists():
-            fmd = subprocess.Popen(Path(fmd_dir, 'fmd.exe'))
-            fmd.terminate()
+            cls._log.info('The settings.json for Free Manga Downloader (FMD) does not exist, meaning that FMD has '
+                          'not been opened before. Opening and closing the application to generate the '
+                          'settings.json...')
+            fmd = subprocess.Popen(str(Path(fmd_dir, 'fmd.exe')))
+            os.killpg(os.getpgid(fmd.pid), signal.SIGTERM)
 
             if download_dir is None:
+                cls._log.info('Download directory has not been set; a file dialog window will be opened to input '
+                              'the destination download directory.')
                 Tk().withdraw()
                 download_dir = filedialog.askdirectory(title='Select the folder where you want your manga to be '
                                                              'downloaded to')
@@ -149,41 +165,37 @@ class AppSettings:
             settings_json['saveto']['GenerateMangaFolder'] = True
             settings_json['saveto']['MangaCustomRename'] = '%MANGA%'
             changes_made = True
-            cls._log.debug('Setting "Generate Manga Folder" should be enabled with "Manga Custom Rename" '
-                           f'configured as "%MANGA%"; this configuration has been applied')
+            cls._log.info('Setting "Generate Manga Folder" should be enabled with "Manga Custom Rename" '
+                          f'configured as "%MANGA%"; this configuration has been applied')
 
         # ChapterCustomRename MUST FOLLOW this format to be properly parsed
         if settings_json['saveto']['ChapterCustomRename'].find('-.-') == -1 \
                 or settings_json['saveto']['ChapterCustomRename'] != '%MANGA% -.- %CHAPTER%':
             settings_json['saveto']['ChapterCustomRename'] = '%MANGA% -.- %CHAPTER%'
             changes_made = True
-            cls._log.debug('Setting "Chapter Custom Rename" should be configured as "%MANGA% -.- '
-                           f'%CHAPTER%" for parsing by Manga Tagger; this configuration has been applied')
+            cls._log.info('Setting "Chapter Custom Rename" should be configured as "%MANGA% -.- '
+                          f'%CHAPTER%" for parsing by Manga Tagger; this configuration has been applied')
 
         # Set the download format to CBZ
         if settings_json['saveto']['Compress'] != 2:
             settings_json['saveto']['Compress'] = 2
             changes_made = True
-            cls._log.debug('Setting "Compress" should be set to 2, which corresponds to the CBZ file format.')
+            cls._log.info('Setting "Compress" should be set to 2, which corresponds to the CBZ file format.')
 
         # Set the download directory
         if download_dir is None:
             download_dir = Path(settings_json['saveto']['SaveTo'])
 
             if not download_dir.is_absolute():
-                cls._log.critical(f'"{download_dir}" is not a valid path. The download directory must be an '
-                                  f'absolute path, such as "C:\\Downloads". Please select a new download path.')
+                cls._log.warning(f'"{download_dir}" is not a valid path. The download directory must be an '
+                                 f'absolute path, such as "C:\\Downloads". Please select a new download path.')
 
                 Tk().withdraw()
-                download_dir = filedialog.askdirectory(title='Select the folder where you want your manga to be '
-                                                             'downloaded to')
+                download_dir = Path(filedialog.askdirectory(title='Select the folder where you want your manga to be '
+                                                                  'downloaded to'))
 
-            QueueWorker.download_dir = download_dir
-            cls._log.debug(f'Download directory has been set as "{QueueWorker.download_dir}"')
-        else:
-            QueueWorker.download_dir = Path(download_dir)
-            cls._log.debug(
-                f'Download directory has been set as "{QueueWorker.download_dir}"')
+        QueueWorker.download_dir = download_dir
+        cls._log.info(f'Download directory has been set as "{QueueWorker.download_dir}"')
 
         if changes_made:
             with open(Path(fmd_dir, 'userdata', 'settings.json'), 'w') as fmd_settings:
