@@ -318,7 +318,7 @@ class AppSettings:
                     "log_format": "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
                 },
                 "json": {
-                    "enabled": False,
+                    "enabled": True,
                     "log_format": "%(threadName)s %(thread)d %(asctime)s %(name)s %(levelname)s %(message)s"
                 },
                 "tcp": {
