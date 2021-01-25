@@ -32,7 +32,7 @@ def main():
     LOG.info(f'Starting Manga Tagger - Version {__version__}')
     LOG.debug('RUNNING IN DEBUG MODE')
 
-    if AppSettings.mode_settings != {}:
+    if AppSettings.mode_settings is not None:
         LOG.info('DRY RUN MODE ENABLED')
         LOG.info(f"MetadataTable Insertion: {AppSettings.mode_settings['database_insert']}")
         LOG.info(f"Renaming Files: {AppSettings.mode_settings['rename_file']}")
@@ -447,8 +447,8 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         manga_metadata = Metadata(manga_title, logging_info, jikan_details, anilist_details)
         logging_info['metadata'] = manga_metadata.__dict__
 
-        if AppSettings.mode_settings == {} or ('database_insert' in AppSettings.mode_settings.keys()
-                                               and AppSettings.mode_settings['database_insert']):
+        if AppSettings.mode_settings is None or ('database_insert' in AppSettings.mode_settings.keys()
+                                                 and AppSettings.mode_settings['database_insert']):
             MetadataTable.insert(manga_metadata, logging_info)
 
         LOG.info(f'Retrieved metadata for "{manga_title}" from the Anilist and MyAnimeList APIs; '
@@ -456,8 +456,8 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         ProcSeriesTable.processed_series.add(manga_title)
         CURRENTLY_PENDING_DB_SEARCH.remove(manga_title)
 
-    if AppSettings.mode_settings == {} or ('write_comicinfo' in AppSettings.mode_settings.keys()
-                                           and AppSettings.mode_settings['write_comicinfo']):
+    if AppSettings.mode_settings is None or ('write_comicinfo' in AppSettings.mode_settings.keys()
+                                             and AppSettings.mode_settings['write_comicinfo']):
         comicinfo_xml = construct_comicinfo_xml(manga_metadata, manga_chapter_number, logging_info)
         reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info)
 

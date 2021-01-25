@@ -19,7 +19,7 @@ from MangaTaggerLib.api import AniList
 
 
 class AppSettings:
-    mode_settings = {}
+    mode_settings = None
     timezone = None
     version = None
 
