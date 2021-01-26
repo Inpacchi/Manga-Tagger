@@ -1,13 +1,11 @@
 import atexit
 import json
 import logging
-import os
-import signal
 import subprocess
 import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
 from pathlib import Path
-from tkinter import filedialog, Tk
+from tkinter import filedialog, messagebox, Tk
 
 import numpy
 import psutil
@@ -143,17 +141,22 @@ class AppSettings:
         # can then set the download path
         if not fmd_settings_path.exists():
             cls._log.info('The settings.json for Free Manga Downloader (FMD) does not exist, meaning that FMD has '
-                          'not been opened before. Opening and closing the application to generate the '
-                          'settings.json...')
-            fmd = subprocess.Popen(str(Path(fmd_dir, 'fmd.exe')))
-            os.killpg(os.getpgid(fmd.pid), signal.SIGTERM)
+                          'not been opened before. Opening the application to generate the settings.json...')
+
+            Tk().withdraw()
+            messagebox.showinfo('Manga Tagger', 'For Manga Tagger to continue, the settings.json for Free Manga '
+                                                'Downloader (FMD) must first be generated. After clicking "OK", FMD '
+                                                'will open. Please click "No" to any module update pop-ups and close '
+                                                'FMD using the "X" in the upper right-hand corner.')
+
+            subprocess.run(str(Path(fmd_dir, 'fmd.exe')))
 
             if download_dir is None:
                 cls._log.info('Download directory has not been set; a file dialog window will be opened to input '
                               'the destination download directory.')
                 Tk().withdraw()
-                download_dir = filedialog.askdirectory(title='Select the folder where you want your manga to be '
-                                                             'downloaded to')
+                download_dir = Path(filedialog.askdirectory(title='Select the folder where you want your manga to be '
+                                                                  'downloaded to'))
 
         # Load settings
         with open(fmd_settings_path, 'r') as fmd_settings:
