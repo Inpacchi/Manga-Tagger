@@ -5,7 +5,7 @@
 
 A tool to rename and write metadata to digital manga chapters
 
-## [New alpha build v1.1.4-alpha out now! A LOT of QOL (quality-of-life) changes were made and even though it's an alpha version, you should definitely be using it.](https://github.com/Inpacchi/Manga-Tagger/releases/tag/v1.1.4-alpha) 
+## [New alpha build v1.1.5-alpha out now! A LOT of QOL (quality-of-life) changes were made and even though it's an alpha version, you should definitely be using it.](https://github.com/Inpacchi/Manga-Tagger/releases/tag/v1.1.5-alpha) 
 
 ## Background and Inspiration
 Where do I even start...well, I **really** enjoy Japanese culture, specifically anime and manga. While there is a lot of support for American comics in a digital format, the same cannot be said about manga. One day, I stumbled across Free Manga Downloader, which allowed me to start my digital manga library. However, the one pitfall of the application is the lack of capability for grabbing metadata.
