@@ -1,6 +1,7 @@
 import logging
 import sys
 from datetime import datetime
+from pathlib import Path
 from queue import Queue
 
 from bson.errors import InvalidDocument
@@ -173,6 +174,40 @@ class ProcFilesTable(Database):
             'series_title': manga_title,
             'chapter_number': chapter_number
         })
+
+    @classmethod
+    def insert_record_and_rename(cls, old_file_path: Path, new_file_path: Path, manga_title, chapter, logging_info):
+        old_file_path.rename(new_file_path)
+        cls._log.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
+
+        record = {
+            "series_title": manga_title,
+            "chapter_number": chapter,
+            "old_filename": old_file_path.name,
+            "new_filename": new_file_path.name,
+            "process_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
+        }
+
+        cls._log.debug(f'Record: {record}')
+
+        logging_info['inserted_processed_record'] = record
+        cls._database.insert(record, logging_info)
+
+    @classmethod
+    def update_record_and_rename(cls, results, old_file_path: Path, new_file_path: Path, logging_info):
+        old_file_path.rename(new_file_path)
+        cls._log.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
+
+        record = {
+            "$set": {
+                "old_filename": old_file_path.name,
+                "update_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
+            }
+        }
+        cls._log.debug(f'Record: {record}')
+
+        logging_info['updated_processed_record'] = record
+        cls._database.update(results, record, logging_info)
 
 
 class ProcSeriesTable(Database):

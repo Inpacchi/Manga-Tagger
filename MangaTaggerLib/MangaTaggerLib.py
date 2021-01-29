@@ -230,7 +230,8 @@ def rename_action(current_file_path: Path, new_file_path: Path, manga_title, cha
     if results is None:
         LOG.info(f'"{manga_title}" chapter {chapter_number} has not been processed before. '
                  f'Proceeding with file rename...', extra=logging_info)
-        insert_record_and_rename(current_file_path, new_file_path, manga_title, chapter_number, logging_info)
+        ProcFilesTable.insert_record_and_rename(current_file_path, new_file_path, manga_title, chapter_number,
+                                                logging_info)
     else:
         versions = ['v2', 'v3', 'v4', 'v5']
 
@@ -248,7 +249,7 @@ def rename_action(current_file_path: Path, new_file_path: Path, manga_title, cha
                     new_file_path.unlink()
                     LOG.info(f'"{new_file_path.name}" has been deleted! Proceeding to rename new file...',
                              extra=logging_info)
-                    update_record_and_rename(results, current_file_path, new_file_path, logging_info)
+                    ProcFilesTable.update_record_and_rename(results, current_file_path, new_file_path, logging_info)
                 else:
                     LOG.warning(f'"{current_file_path.name}" was not renamed due being the exact same as the '
                                 f'existing chapter; file currently being processed will be deleted',
@@ -307,40 +308,6 @@ def compare_versions(old_filename: str, new_filename: str):
         return True
     else:
         return False
-
-
-def insert_record_and_rename(old_file_path: Path, new_file_path: Path, manga_title, chapter_number, logging_info):
-    old_file_path.rename(new_file_path)
-    LOG.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
-
-    record = {
-        "series_title": manga_title,
-        "chapter_number": chapter_number,
-        "old_filename": old_file_path.name,
-        "new_filename": new_file_path.name,
-        "process_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
-    }
-
-    LOG.debug(f'Record: {record}')
-
-    logging_info['inserted_processed_record'] = record
-    ProcFilesTable.insert(record, logging_info)
-
-
-def update_record_and_rename(results, old_file_path: Path, new_file_path: Path, logging_info):
-    old_file_path.rename(new_file_path)
-    LOG.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
-
-    record = {
-        "$set": {
-            "old_filename": old_file_path.name,
-            "update_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
-        }
-    }
-    LOG.debug(f'Record: {record}')
-
-    logging_info['updated_processed_record'] = record
-    ProcFilesTable.update(results, record, logging_info)
 
 
 def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_path=None):
