@@ -410,13 +410,15 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                     logging_info['jikan_titles'] = jikan_titles
 
                     LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
-                    comparison_value = compare_titles(jikan_titles, anilist_titles, logging_info)
+                    comparison_values = compare_titles(manga_title, jikan_titles, anilist_titles, logging_info)
 
-                    if any(comparison_value) > .8:
+                    if comparison_values is None:
+                        continue
+                    elif any(value > .8 for value in comparison_values):
                         LOG.info(f'Match found for {manga_title}', extra=logging_info)
                         manga_found = True
                         break
-                    elif any(comparison_value) > .5:
+                    elif any(value > .5 for value in comparison_values):
                         jikan_details = MTJikan().manga(result['mal_id'])
                         jikan_authors = jikan_details['authors']
                         anilist_authors = AniList.search_staff_by_mal_id(result['mal_id'],
@@ -499,15 +501,29 @@ def construct_anilist_titles(anilist_details):
     return anilist_titles
 
 
-def compare_titles(jikan_titles: dict, anilist_titles: dict, logging_info):
+def compare_titles(manga_title: str, jikan_titles: dict, anilist_titles: dict, logging_info):
+    comparison_values = []
+
+    for jikan_key in jikan_titles.keys():
+        comparison_values.append(compare(manga_title, jikan_titles[jikan_key]))
+
+    for anilist_key in anilist_titles.keys():
+        comparison_values.append(compare(manga_title, anilist_titles[anilist_key]))
+
+    logging_info['pre_comparison_values'] = comparison_values
+    LOG.debug(f'pre_comparison_values: {comparison_values}', extra=logging_info)
+
+    if not any(value > .69 for value in comparison_values):
+        return None
+
     comparison_values = []
 
     for jikan_key in jikan_titles.keys():
         for anilist_key in anilist_titles.keys():
             comparison_values.append(compare(jikan_titles[jikan_key], anilist_titles[anilist_key]))
 
-    logging_info['comparison_values'] = comparison_values
-    LOG.debug(f'comparison_values: {comparison_values}', extra=logging_info)
+    logging_info['post_comparison_values'] = comparison_values
+    LOG.debug(f'post_comparison_values: {comparison_values}', extra=logging_info)
 
     return comparison_values
 
