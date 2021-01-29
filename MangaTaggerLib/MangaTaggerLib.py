@@ -154,6 +154,10 @@ def file_renamer(filename, logging_info):
             if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
                 raise MangaMatchedException()
 
+        if 'oneshot' in path.splitext(filename[1].lower())[0]:
+            LOG.debug(f'manga_type: oneshot')
+            return f'{manga_title} {path.splitext(filename[1])[0]}.cbz', 'oneshot'
+
         chapter_title = chapter_title.replace(' ', '')
 
         if 'chapter' in chapter_title:
@@ -168,7 +172,6 @@ def file_renamer(filename, logging_info):
         elif 'act' in chapter_title:
             delimiter = 'act'
             delimiter_index = 3
-        #elif chapter_title.find('oneshot') > -1:
         else:
             raise UnparsableFilenameError(filename, 'ch/chapter')
     except UnparsableFilenameError as ufe:

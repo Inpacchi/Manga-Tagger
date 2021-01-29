@@ -12,6 +12,7 @@ from tests.database import ProcFilesTable as ProcFilesTableTest
 
 class TestMangaRename(unittest.TestCase):
     correct_filename = 'Absolute Boyfriend 001.cbz'
+    correct_oneshot_filename = 'Absolute Boyfriend Oneshot Lover\'s Quarrel.cbz'
     special_filename = '.hackg.u.+ 001.cbz'
 
     def test_verify_filename_series_name(self):
@@ -69,6 +70,13 @@ class TestMangaRename(unittest.TestCase):
         """
         filename = file_renamer('.hackg.u.+ -.- .hackg.u.+ Chapter 001.cbz', {})[0]
         self.assertEqual(filename, self.special_filename)
+
+    def test_verify_filename_oneshot(self):
+        """
+        Tests for the renaming of oneshot manga chapters.
+        """
+        filename = file_renamer('Absolute Boyfriend -.- Oneshot Lover\'s Quarrel.cbz', {})[0]
+        self.assertEqual(filename, self.correct_oneshot_filename)
 
 
 class TestMangaRenameAction(unittest.TestCase):
