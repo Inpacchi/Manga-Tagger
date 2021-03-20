@@ -483,7 +483,7 @@ def compare_titles(manga_title: str, jikan_titles: dict, anilist_titles: dict, l
     logging_info['pre_comparison_values'] = comparison_values
     LOG.debug(f'pre_comparison_values: {comparison_values}', extra=logging_info)
 
-    if not any(value > .69 for value in comparison_values):
+    if not any(value > .9 for value in comparison_values):
         return None
 
     comparison_values = []
@@ -494,7 +494,6 @@ def compare_titles(manga_title: str, jikan_titles: dict, anilist_titles: dict, l
 
     logging_info['post_comparison_values'] = comparison_values
     LOG.debug(f'post_comparison_values: {comparison_values}', extra=logging_info)
-
     return comparison_values
 
 
@@ -542,25 +541,26 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     month.text = f'{publish_date.month}'
 
     writer = SubElement(comicinfo, 'Writer')
-    writer.text = next(iter(metadata.staff['story']))
+    writer.text = tryIter(metadata.staff['story'])
+
 
     penciller = SubElement(comicinfo, 'Penciller')
-    penciller.text = next(iter(metadata.staff['art']))
+    penciller.text = tryIter(metadata.staff['art'])
 
     inker = SubElement(comicinfo, 'Inker')
-    inker.text = next(iter(metadata.staff['art']))
+    inker.text = tryIter(metadata.staff['art'])
 
     colorist = SubElement(comicinfo, 'Colorist')
-    colorist.text = next(iter(metadata.staff['art']))
+    colorist.text = tryIter(metadata.staff['art'])
 
     letterer = SubElement(comicinfo, 'Letterer')
-    letterer.text = next(iter(metadata.staff['art']))
+    letterer.text = tryIter(metadata.staff['art'])
 
     cover_artist = SubElement(comicinfo, 'CoverArtist')
-    cover_artist.text = next(iter(metadata.staff['art']))
+    cover_artist.text = tryIter(metadata.staff['art'])
 
     publisher = SubElement(comicinfo, 'Publisher')
-    publisher.text = next(iter(metadata.serializations))
+    publisher.text = tryIter(metadata.serializations)
 
     genre = SubElement(comicinfo, 'Genre')
     for mg in metadata.genres:
@@ -600,3 +600,9 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
         return
 
     LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
+
+def tryIter(x):
+    try:
+        return next(iter(x))
+    except StopIteration:
+        return "None"

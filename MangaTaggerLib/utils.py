@@ -9,6 +9,7 @@ from tkinter import filedialog, messagebox, Tk
 
 import numpy
 import psutil
+from fuzzywuzzy import fuzz
 from pythonjsonlogger import jsonlogger
 
 from MangaTaggerLib.database import Database
@@ -364,28 +365,4 @@ class AppSettings:
 
 
 def compare(s1, s2):
-    s1 = s1.lower().strip('/[^a-zA-Z ]/g", ')
-    s2 = s2.lower().strip('/[^a-zA-Z ]/g", ')
-
-    rows = len(s1) + 1
-    cols = len(s2) + 1
-    distance = numpy.zeros((rows, cols), int)
-
-    for i in range(1, rows):
-        distance[i][0] = i
-
-    for i in range(1, cols):
-        distance[0][i] = i
-
-    for col in range(1, cols):
-        for row in range(1, rows):
-            if s1[row - 1] == s2[col - 1]:
-                cost = 0
-            else:
-                cost = 2
-
-            distance[row][col] = min(distance[row - 1][col] + 1,
-                                     distance[row][col - 1] + 1,
-                                     distance[row - 1][col - 1] + cost)
-
-    return ((len(s1) + len(s2)) - distance[row][col]) / (len(s1) + len(s2))
+    return fuzz.ratio(s1, s2)/100
