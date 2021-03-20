@@ -360,7 +360,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         manga_found = False
         try:
             for result in manga_search['results']:
-                if result['type'].lower() == 'manga':
+                if result['type'].lower() == 'manga' or result['type'].lower() == 'one-shot':
                     manga_id = result['mal_id']
                     anilist_titles = construct_anilist_titles(
                         AniList.search_for_manga_title_by_mal_id(manga_id, logging_info)['title'])
