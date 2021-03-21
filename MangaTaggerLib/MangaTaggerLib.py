@@ -3,6 +3,8 @@ import time
 from datetime import datetime
 from os import path
 from pathlib import Path
+
+import pymanga
 from requests.exceptions import ConnectionError
 from xml.etree.ElementTree import SubElement, Element, Comment, tostring
 from xml.dom.minidom import parseString
@@ -11,11 +13,11 @@ from zipfile import ZipFile
 from jikanpy.exceptions import APIException
 
 from MangaTaggerLib._version import __version__
-from MangaTaggerLib.api import MTJikan, AniList
+from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
     MangaNotFoundError, MangaMatchedException
-from MangaTaggerLib.models import Metadata
+from MangaTaggerLib.models import Metadata, Data
 from MangaTaggerLib.task_queue import QueueWorker
 from MangaTaggerLib.utils import AppSettings, compare
 
@@ -315,36 +317,16 @@ def compare_versions(old_filename: str, new_filename: str):
 
 def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_path=None):
     manga_search = None
-    db_exists = True
-    retries = 0
+    db_exists = False
 
     LOG.info(f'Table search value is "{manga_title}"', extra=logging_info)
-    while manga_search is None:
-        if retries == 0:
-            LOG.info('Searching manga_metadata for manga title by search value...', extra=logging_info)
-            manga_search = MetadataTable.search_by_search_value(manga_title)
-            retries = 1
-        elif retries == 1:
-            LOG.info('Searching manga_metadata for regular manga title...', extra=logging_info)
-            manga_search = MetadataTable.search_by_series_title(manga_title)
-            retries = 2
-        elif retries == 2:
-            LOG.info('Searching manga_metadata for English manga title...', extra=logging_info)
-            manga_search = MetadataTable.search_by_series_title_eng(manga_title)
-            retries = 3
-        else:  # The manga is not in the database, so ping the API and create the database
-            LOG.info('Manga was not found in the database; resorting to Jikan API.', extra=logging_info)
 
-            try:
-                manga_search = MTJikan().search('manga', manga_title)
-            except (APIException, ConnectionError) as e:
-                LOG.warning(e, extra=logging_info)
-                LOG.warning('Manga Tagger has unintentionally breached the API limits on Jikan. Waiting 60s to clear '
-                            'all rate limiting limits...')
-                time.sleep(60)
-                manga_search = MTJikan().search('manga', manga_title)
-            db_exists = False
-
+    for x in range(4):
+        manga_search = dbSearch(manga_title, x)
+        if manga_search is not None:
+            db_exists = True
+            break
+    # Metadata already exists
     if db_exists:
         if manga_title in ProcSeriesTable.processed_series:
             LOG.info(f'Found an entry in manga_metadata for "{manga_title}".', extra=logging_info)
@@ -354,69 +336,50 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
             ProcSeriesTable.processed_series.add(manga_title)
             CURRENTLY_PENDING_DB_SEARCH.remove(manga_title)
 
-        manga_metadata = Metadata(manga_title, logging_info, details=manga_search)
+        manga_metadata = Metadata(manga_title, logging_info, db_details=manga_search)
         logging_info['metadata'] = manga_metadata.__dict__
+    # Get metadata
     else:
-        manga_found = False
+        sources = {"MAL": MTJikan(), "AniList": AniList(), "MangaUpdates": MangaUpdates()}
+        # sources["Kitsu"] = Kitsu
+        preferences = ["AniList", "MangaUpdates", "MAL"]
+        results = {}
+        metadata = None
+        results["MAL"] = sources["MAL"].search('manga', manga_title)
+        results["AniList"] = sources["AniList"].search(manga_title, logging_info)
+        results["MangaUpdates"] = sources["MangaUpdates"].search(manga_title)
         try:
-            for result in manga_search['results']:
-                if result['type'].lower() == 'manga' or result['type'].lower() == 'one-shot':
-                    manga_id = result['mal_id']
-                    anilist_titles = construct_anilist_titles(
-                        AniList.search_for_manga_title_by_mal_id(manga_id, logging_info)['title'])
-                    logging_info['anilist_titles'] = anilist_titles
+            for source in preferences:
+                for result in results[source]:
+                    if source == "AniList":
+                        # Construct Anilist XML
+                        """{'id': 114527, 'type': 'MANGA', 'title': {'romaji': 'Uchi no Kaisha no Chiisai Senpai no Hanashi', 'english': None, 'native': 'うちの会社の小さい先輩の話'}, 'synonyms': ['My Tiny Senpai From Work', "My Company's Small Senpai"]}
+    {'id': 122192, 'type': 'MANGA', 'title': {'romaji': 'Uchi no Kaisha no Chiisai Senpai no Hanashi', 'english': None, 'native': 'うちの会社の小さい先輩の話'}, 'synonyms': ['Story of a Small Senior in My Company', "My Company's Small Senpai", 'My Tiny Senpai From Work']}"""
+                        titles = [x[1] for x in result["title"].items() if x[1] is not None]
+                        [titles.append(x) for x in result["synonyms"]]
+                        for title in titles:
+                            if compare(manga_title, title) >= 0.9:
+                                manga = AniList.manga(result["id"], logging_info)
+                                manga["source"] = "AL"
+                                metadata = Data(manga, manga_title)
+                                raise MangaMatchedException("Found a match")
+                    elif source == "MangaUpdates":
+                        # Construct MangaUpdates XML
+                        if compare(manga_title, result['title']) >= 0.9:
+                            manga = pymanga.series(result["id"])
+                            manga["source"] = "MangaUpdates"
+                            metadata = Data(manga, manga_title, result["id"])
+                        raise MangaMatchedException("Found a match")
+                    elif source == "MAL":
+                        if compare(manga_title, result['title']) >= 0.9:
+                            manga = MTJikan().manga(result["mal_id"])
+                            manga["source"] = "MAL"
+                            metadata = Data(manga, manga_title, result["mal_id"])
+                            raise MangaMatchedException("Found a match")
+        except MangaMatchedException:
+            pass
 
-                    try:
-                        jikan_details = MTJikan().manga(manga_id)
-                    except (APIException, ConnectionError) as e:
-                        LOG.warning(e, extra=logging_info)
-                        LOG.warning(
-                            'Manga Tagger has unintentionally breached the API limits on Jikan. Waiting 60s to clear '
-                            'all rate limiting limits...')
-                        time.sleep(60)
-                        jikan_details = MTJikan().manga(manga_id)
-
-                    jikan_titles = construct_jikan_titles(jikan_details)
-                    logging_info['jikan_titles'] = jikan_titles
-
-                    LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
-                    comparison_values = compare_titles(manga_title, jikan_titles, anilist_titles, logging_info)
-
-                    if comparison_values is None:
-                        continue
-                    elif any(value > .8 for value in comparison_values):
-                        LOG.info(f'Match found for {manga_title}', extra=logging_info)
-                        manga_found = True
-                        break
-                    elif any(value > .5 for value in comparison_values):
-                        jikan_details = MTJikan().manga(result['mal_id'])
-                        jikan_authors = jikan_details['authors']
-                        anilist_authors = AniList.search_staff_by_mal_id(result['mal_id'],
-                                                                         logging_info)['staff']['edges']
-
-                        logging_info['jikan_authors'] = jikan_authors
-                        logging_info['anilist_authors'] = anilist_authors
-
-                        LOG.info(f'Match found for {manga_title} with 50% likelihood; now checking '
-                                 f'authors for further veritifcation', extra=logging_info)
-
-                        if compare_authors(jikan_authors, anilist_authors, logging_info):
-                            LOG.info(f'Authors matched up for {manga_title}; proceeding with processing')
-                            manga_found = True
-                            break
-            if not manga_found:
-                raise MangaNotFoundError(manga_title)
-        except MangaNotFoundError as mnfe:
-            LOG.exception(mnfe, extra=logging_info)
-            return
-
-        LOG.info(f'ID for "{manga_title}" found as "{manga_id}".', extra=logging_info)
-
-        anilist_details = AniList.search_staff_by_mal_id(manga_id, logging_info)
-        LOG.debug(f'jikan_details: {jikan_details}')
-        LOG.debug(f'anilist_details: {anilist_details}')
-
-        manga_metadata = Metadata(manga_title, logging_info, jikan_details, anilist_details)
+        manga_metadata = Metadata(manga_title, logging_info, details=metadata.toDict())
         logging_info['metadata'] = manga_metadata.__dict__
 
         if AppSettings.mode_settings is None or ('database_insert' in AppSettings.mode_settings.keys()
@@ -543,7 +506,6 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     writer = SubElement(comicinfo, 'Writer')
     writer.text = tryIter(metadata.staff['story'])
 
-
     penciller = SubElement(comicinfo, 'Penciller')
     penciller.text = tryIter(metadata.staff['art'])
 
@@ -570,7 +532,12 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
             genre.text = f'{mg}'
 
     web = SubElement(comicinfo, 'Web')
-    web.text = metadata.mal_url
+    if metadata.anilist_url is not None:
+        web.text = metadata.anilist_url
+    elif metadata.mal_url is not None:
+        web.text = metadata.mal_url
+    else:
+        web.text = "None"
 
     language = SubElement(comicinfo, 'LanguageISO')
     language.text = 'en'
@@ -601,8 +568,20 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
 
     LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
 
+
 def tryIter(x):
+    if x is None:
+        return "None"
     try:
         return next(iter(x))
     except StopIteration:
         return "None"
+
+
+def dbSearch(string, mode):
+    if mode == 0:
+        return MetadataTable.search_by_search_value(string)
+    elif mode == 1:
+        return MetadataTable.search_by_series_title(string)
+    elif mode == 2:
+        return MetadataTable.search_by_series_title_eng(string)

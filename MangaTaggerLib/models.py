@@ -1,7 +1,10 @@
 import logging
 from datetime import datetime
+
+from jikanpy import Jikan
 from pytz import timezone
 
+from MangaTaggerLib.api import MTJikan
 from MangaTaggerLib.errors import MetadataNotCompleteError
 from MangaTaggerLib.utils import AppSettings, compare
 
@@ -13,16 +16,16 @@ class Metadata:
     def fully_qualified_class_name(cls):
         return f'{cls.__module__}.{cls.__name__}'
 
-    def __init__(self, manga_title, logging_info, jikan_details=None, anilist_details=None, details=None):
+    def __init__(self, manga_title, logging_info, details=None, db_details=None):
         Metadata._log = logging.getLogger(self.fully_qualified_class_name())
 
         self.search_value = manga_title
         Metadata._log.info(f'Creating Metadata model for series "{manga_title}"...', extra=logging_info)
 
-        if jikan_details and anilist_details:  # If details are grabbed from Jikan and Anilist APIs
-            self._construct_api_metadata(jikan_details, anilist_details, logging_info)
-        elif details:  # If details were stored in the database
-            self._construct_database_metadata(details)
+        if details:  # If details are grabbed from Jikan and Anilist APIs
+            self._construct_api_metadata(details, logging_info)
+        elif db_details:  # If details were stored in the database
+            self._construct_database_metadata(db_details)
         else:
             Metadata._log.exception(MetadataNotCompleteError, extra=logging_info)
         Metadata._log.debug(f'{self.search_value} Metadata Model: {self.__dict__.__str__()}')
@@ -30,34 +33,42 @@ class Metadata:
         logging_info['metadata'] = self.__dict__
         Metadata._log.info('Successfully created Metadata model.', extra=logging_info)
 
-    def _construct_api_metadata(self, jikan_details, anilist_details, logging_info):
-        self._id = jikan_details['mal_id']
-        self.series_title = jikan_details['title']
+    def _construct_api_metadata(self, details, logging_info):
+        self._id = tryKey(details, "mal_id")
+        self.series_title = tryKey(details, "series_title")
 
-        if jikan_details['title_english'] == 'None' or jikan_details['title_english'] is None:
+        if tryKey(details, "series_title_eng") is None:
             self.series_title_eng = None
         else:
-            self.series_title_eng = jikan_details['title_english']
+            self.series_title_eng = tryKey(details, "series_title_eng")
 
-        if jikan_details['title_japanese'] == 'None' or jikan_details['title_japanese'] is None:
+        if tryKey(details, "series_title_jap") is None:
             self.series_title_jap = None
         else:
-            self.series_title_jap = jikan_details['title_japanese']
+            self.series_title_jap = tryKey(details, "series_title_jap")
 
-        self.status = jikan_details['status']
-        self.type = jikan_details['type']
-        self.description = jikan_details['synopsis']
-        self.mal_url = jikan_details['url']
-        self.anilist_url = anilist_details['siteUrl']
-        self.publish_date = None
-        self.genres = []
-        self.staff = {}
-        self.serializations = {}
+        self.status = tryKey(details, "status")
+        self.type = tryKey(details, "type")
+        self.description = tryKey(details, "description")
+        self.mal_url = tryKey(details, "mal_url")
+        self.anilist_url = tryKey(details, "anilist_url")
+        try:
+            self.mal_url = details["mangaupdates_url"]
+        except KeyError:
+            pass
+        self.publish_date = tryKey(details, "publish_date")
+        self.genres = tryKey(details, "genres")
+        staff = tryKey(details, "staff")
+        if staff is not None:
+            self.staff = {"story": tryKey(staff, "story"), "art": tryKey(staff, "art")}
+        else:
+            self.staff = {}
+        self.serializations = tryKey(details, "serializations")
 
-        self._construct_publish_date(jikan_details['published']['from'])
-        self._parse_genres(jikan_details['genres'], logging_info)
-        self._parse_staff(anilist_details['staff']['edges'], jikan_details['authors'], logging_info)
-        self._parse_serializations(jikan_details['serializations'], logging_info)
+        # self._construct_publish_date(details['published']['from'])
+        # self._parse_genres(details['genres'], logging_info)
+        # self._parse_staff(details['staff']['edges'], details['authors'], logging_info)
+        # self._parse_serializations(details['serializations'], logging_info)
 
         # self.scrape_date = datetime.now().date().strftime('%Y-%m-%d %I:%M %p')
         self.scrape_date = timezone(AppSettings.timezone).localize(datetime.now()).strftime('%Y-%m-%d %I:%M %p %Z')
@@ -179,3 +190,150 @@ class Metadata:
             'staff': self.staff,
             'serializations': self.serializations
         }
+
+
+class Data:
+    anilist_id = None
+    mal_id = None
+    mangaupdates_id = None
+    series_title = None
+    series_title_eng = None
+    series_title_jap = None
+    status = None
+    type = None
+    description = None
+    mal_url = None
+    anilist_url = None
+    mangaupdates_url = None
+    publish_date = None
+    genres = []
+    staff = {"story": [], "art": []}
+    serializations = {}
+
+    def __init__(self, details, title, MU_id=None):
+        if details["source"] == "AL":
+            self.series_title = title
+            self.anilist_id = details["id"]
+            self.mal_id = details["idMal"]
+            self.series_title_eng = details["title"]["english"]
+            self.series_title_jap = details["title"]["romaji"]
+            self.status = details["status"]
+            self.type = details["type"]
+            self.description = details["description"]
+            if self.mal_id is not None:
+                self.mal_url = r"myanimelist.net/manga/" + str(self.mal_id)
+            self.anilist_url = details["siteUrl"]
+            self.publish_date = datetime.strptime(
+                str(details["startDate"]["year"]) + "-" + str(details["startDate"]["month"]) + "-" + str(details["startDate"]["day"]),
+                '%Y-%m-%d').strftime('%Y-%m-%d')
+            self.genres = details["genres"]
+            staff = details["staff"]["edges"]
+            for person in staff:
+                if person["role"] == "Story & Art":
+                    self.staff["art"].append(person["node"]["name"]["full"])
+                    self.staff["story"].append(person["node"]["name"]["full"])
+                elif person["role"] == "Art":
+                    self.staff["art"].append(person["node"]["name"]["full"])
+                elif person["role"] == "Story":
+                    self.staff["story"].append(person["node"]["name"]["full"])
+            if self.mal_id is not None:
+                self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
+        elif details["source"] == "MangaUpdates":
+            self.series_title = title
+            self.mangaupdates_id = MU_id
+            if "Complete" in details["status"]:
+                self.status = "Finished"
+            else:
+                self.status = "Publishing"
+            self.type = details["type"]
+            self.description = details["description"]
+            self.mangaupdates_url = r"https://www.mangaupdates.com/series.html?id=" + str(MU_id)
+            self.publish_date = details["year"]
+            self.genres = details["genres"]
+            self.staff["story"] = [x for x in details["authors"]]
+            self.staff["art"] = [x for x in details["artists"]]
+            self.serializations = details["serialized"]["name"]
+        elif details["source"] == "MAL":
+            self.series_title = title
+            self.mal_id = details["mal_id"]
+            self.series_title_eng = details["title_english"]
+            self.series_title_jap = details["title_japanese"]
+            self.status = details["status"]
+            self.type = details["type"]
+            self.description = details["synopsis"]
+            self.mal_url = details["url"]
+            date = details["published"]["from"]
+            date = date[:date.index('T')]
+            self.publish_date = datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
+            self.genres = [x["name"] for x in details["genres"]]
+            query = '''
+            query search_manga_by_mal_id ($mal_id: Int) {
+              Media (idMal: $mal_id, type: MANGA) {
+                title {
+                  romaji
+                  english
+                  native
+                }
+              }
+            }
+            '''
+
+            variables = {
+                'mal_id': self.mal_id
+            }
+            asd = MTJikan().manga(self.mal_id)
+            authors1 = asd["authors"]
+            authors2 = [x["mal_id"] for x in authors1]
+            people = [Jikan().person(x) for x in authors2]
+            staff = {}
+            for x in people:
+                for y in x["published_manga"]:
+                    if y["manga"]["mal_id"] == self.mal_id:
+                        staff[x["name"]] = y["position"]
+            for person in staff.items():
+                if person[1] == "Story & Art":
+                    self.staff["art"].append(person[0])
+                    self.staff["story"].append(person[0])
+                elif person[1] == "Art":
+                    self.staff["art"].append(person[0])
+                elif person[1] == "Story":
+                    self.staff["story"].append(person[0])
+            # staff = \
+            # requests.post('https://graphql.anilist.co', json={'query': query, 'variables': variables}).json()['data'][
+            #     'Media']["staff"]["edges"]
+            # for person in staff:
+            #     if person["role"] == "Story & Art":
+            #         self.staff["art"].append(person["node"]["name"]["full"])
+            #         self.staff["story"].append(person["node"]["name"]["full"])
+            #     elif person["role"] == "Art":
+            #         self.staff["art"].append(person["node"]["name"]["full"])
+            #     elif person["role"] == "Story":
+            #         self.staff["story"].append(person["node"]["name"]["full"])
+            self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
+
+    def toDict(self):
+        dataDict = {
+            "anilist_id": self.anilist_id,
+            "mal_id": self.mal_id,
+            "mangaupdates_id": self.mangaupdates_id,
+            "series_title": self.series_title,
+            "series_title_eng": self.series_title_eng,
+            "series_title_jap": self.series_title_jap,
+            "status": self.status,
+            "type": self.type,
+            "description": self.description,
+            "mal_url": self.mal_url,
+            "anilist_url": self.anilist_url,
+            "mangaupdates_url": self.mangaupdates_url,
+            "publish_date": self.publish_date,
+            "genres": self.genres,
+            "staff": self.staff,
+            "serializations": self.serializations
+        }
+        return dataDict
+
+def tryKey(dct, x):
+    try:
+        return dct[x]
+    except KeyError:
+        return None
