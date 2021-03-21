@@ -52,10 +52,8 @@ class Metadata:
         self.description = tryKey(details, "description")
         self.mal_url = tryKey(details, "mal_url")
         self.anilist_url = tryKey(details, "anilist_url")
-        try:
+        if tryKey(details, "mangaupdates_url") is not None:
             self.mal_url = details["mangaupdates_url"]
-        except KeyError:
-            pass
         self.publish_date = tryKey(details, "publish_date")
         self.genres = tryKey(details, "genres")
         staff = tryKey(details, "staff")
@@ -224,7 +222,8 @@ class Data:
                 self.mal_url = r"myanimelist.net/manga/" + str(self.mal_id)
             self.anilist_url = details["siteUrl"]
             self.publish_date = datetime.strptime(
-                str(details["startDate"]["year"]) + "-" + str(details["startDate"]["month"]) + "-" + str(details["startDate"]["day"]),
+                str(details["startDate"]["year"]) + "-" + str(details["startDate"]["month"]) + "-" + str(
+                    details["startDate"]["day"]),
                 '%Y-%m-%d').strftime('%Y-%m-%d')
             self.genres = details["genres"]
             staff = details["staff"]["edges"]
@@ -298,18 +297,19 @@ class Data:
                     self.staff["art"].append(person[0])
                 elif person[1] == "Story":
                     self.staff["story"].append(person[0])
-            # staff = \
-            # requests.post('https://graphql.anilist.co', json={'query': query, 'variables': variables}).json()['data'][
-            #     'Media']["staff"]["edges"]
-            # for person in staff:
-            #     if person["role"] == "Story & Art":
-            #         self.staff["art"].append(person["node"]["name"]["full"])
-            #         self.staff["story"].append(person["node"]["name"]["full"])
-            #     elif person["role"] == "Art":
-            #         self.staff["art"].append(person["node"]["name"]["full"])
-            #     elif person["role"] == "Story":
-            #         self.staff["story"].append(person["node"]["name"]["full"])
             self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
+        elif details["source"] == "NHentai":
+            self.series_title = details["series_title"]
+            self.mangaupdates_id = None
+            self.status = None
+            self.type = details["type"]
+            self.description = details["description"]
+            self.mal_url = details["mal_url"]
+            self.publish_date = None
+            self.genres = details["genres"]
+            self.staff["story"] = [x for x in details["staff"]["story"]]
+            self.staff["art"] = [x for x in details["staff"]["art"]]
+            self.serializations = details["serializations"]
 
     def toDict(self):
         dataDict = {
@@ -331,6 +331,7 @@ class Data:
             "serializations": self.serializations
         }
         return dataDict
+
 
 def tryKey(dct, x):
     try:

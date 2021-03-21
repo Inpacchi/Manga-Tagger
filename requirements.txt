@@ -5,3 +5,6 @@ jikanpy==4.2.2
 requests==2.24.0
 python_json_logger==2.0.1
 pytz==2020.1
+fuzzywuzzy==0.18.0
+py-manga==0.1.5
+python-Levenshtein==0.12.2

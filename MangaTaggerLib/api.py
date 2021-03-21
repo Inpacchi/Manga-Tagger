@@ -3,8 +3,10 @@ import requests
 import time
 from datetime import datetime
 from typing import Optional, Dict, Mapping, Union, Any
+import re
 
 from jikanpy import Jikan
+from NHentai import NHentai, SearchPage, Doujin, DoujinThumbnail
 import pymanga
 
 
@@ -202,6 +204,7 @@ class AniList:
         }
 
         return cls._post(form, variables, logging_info)['Page']['media']
+
     @classmethod
     def manga(cls, id, logging_info):
         form = """
@@ -254,10 +257,12 @@ class AniList:
 
         return cls._post(form, variables, logging_info)['Media']
 
+
 class Kitsu:
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
+
 
 class MangaUpdates:
     @classmethod
@@ -272,3 +277,63 @@ class MangaUpdates:
 
     def series(cls, id):
         return pymanga.series(id)
+
+
+class Fakku:
+    @classmethod
+    def initialize(cls):
+        cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
+
+
+class NH(NHentai):
+    def initialize(self):
+        super(NH, self).__init__
+
+    def search(self, query):
+        search_obj: SearchPage = super(NH, self).search(query=query, sort="popular", page=1)
+        return [x.__dict__ for x in search_obj.doujins]
+
+    def manga(self, id, title):
+        book = re.sub(r"\[([^]]+)\]", "", title)
+        book = re.findall(r"\(([^)]+)\)", book)
+        doujin = super(NH, self)._get_doujin(id)
+
+        anilist_id = None
+        mal_id = None
+        mangaupdates_id = None
+        series_title = doujin.title
+        series_title_eng = None
+        series_title_jap = None
+        status = "Finished"
+        type = "Doujinshi"
+        description = None
+        mal_url = r"https://nhentai.net/g/" + str(id) + r"/"
+        anilist_url = None
+        mangaupdates_url = None
+        publish_date = None
+        genres = doujin.tags
+        artists = [x.title() for x in doujin.artists]
+        staff = {"story": artists, "art": artists}
+        if book is not None:
+            serializations = book[0]
+        else:
+            serializations = None
+        dct = {
+            "anilist_id": anilist_id,
+            "mal_id": mal_id,
+            "mangaupdates_id": mangaupdates_id,
+            "series_title": series_title,
+            "series_title_eng": series_title_eng,
+            "series_title_jap": series_title_jap,
+            "status": status,
+            "type": type,
+            "description": description,
+            "mal_url": mal_url,
+            "anilist_url": anilist_url,
+            "mangaupdates_url": mangaupdates_url,
+            "publish_date": publish_date,
+            "genres": genres,
+            "staff": staff,
+            "serializations": serializations
+        }
+        return dct

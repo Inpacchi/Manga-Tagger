@@ -13,7 +13,7 @@ from zipfile import ZipFile
 from jikanpy.exceptions import APIException
 
 from MangaTaggerLib._version import __version__
-from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates
+from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates, NH
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
     MangaNotFoundError, MangaMatchedException
@@ -340,14 +340,15 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         logging_info['metadata'] = manga_metadata.__dict__
     # Get metadata
     else:
-        sources = {"MAL": MTJikan(), "AniList": AniList(), "MangaUpdates": MangaUpdates()}
+        sources = {"MAL": MTJikan(), "AniList": AniList(), "MangaUpdates": MangaUpdates(), "NHentai": NH()}
         # sources["Kitsu"] = Kitsu
-        preferences = ["AniList", "MangaUpdates", "MAL"]
+        preferences = ["AniList", "MangaUpdates", "MAL", "NHentai"]
         results = {}
         metadata = None
         results["MAL"] = sources["MAL"].search('manga', manga_title)
         results["AniList"] = sources["AniList"].search(manga_title, logging_info)
         results["MangaUpdates"] = sources["MangaUpdates"].search(manga_title)
+        results["NHentai"] = sources["NHentai"].search(manga_title)
         try:
             for source in preferences:
                 for result in results[source]:
@@ -369,13 +370,30 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                             manga = pymanga.series(result["id"])
                             manga["source"] = "MangaUpdates"
                             metadata = Data(manga, manga_title, result["id"])
-                        raise MangaMatchedException("Found a match")
+                            raise MangaMatchedException("Found a match")
                     elif source == "MAL":
                         if compare(manga_title, result['title']) >= 0.9:
-                            manga = MTJikan().manga(result["mal_id"])
+                            try:
+                                manga = MTJikan().manga(result["mal_id"])
+                            except (APIException, ConnectionError) as e:
+                                LOG.warning(e, extra=logging_info)
+                                LOG.warning(
+                                    'Manga Tagger has unintentionally breached the API limits on Jikan. Waiting 60s to clear '
+                                    'all rate limiting limits...')
+                                time.sleep(60)
+                                manga = MTJikan().manga(result["mal_id"])
                             manga["source"] = "MAL"
                             metadata = Data(manga, manga_title, result["mal_id"])
                             raise MangaMatchedException("Found a match")
+                    elif source == "NHentai":
+                        if compare(manga_title, result["title"]):
+                            manga = NH().manga(result["id"], result["title"])
+                            manga["source"] = "NHentai"
+                            metadata = Data(manga, manga_title, result["id"])
+                            raise MangaMatchedException("Found a match")
+        except MangaNotFoundError as mnfe:
+            LOG.exception(mnfe, extra=logging_info)
+            return
         except MangaMatchedException:
             pass
 
@@ -496,12 +514,20 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     summary = SubElement(comicinfo, 'Summary')
     summary.text = metadata.description
 
-    publish_date = datetime.strptime(metadata.publish_date, '%Y-%m-%d').date()
-    year = SubElement(comicinfo, 'Year')
-    year.text = f'{publish_date.year}'
+    if metadata.publish_date is not None:
+        publish_date = datetime.strptime(metadata.publish_date, '%Y-%m-%d').date()
+        year = SubElement(comicinfo, 'Year')
+        year.text = f'{publish_date.year}'
 
-    month = SubElement(comicinfo, 'Month')
-    month.text = f'{publish_date.month}'
+        month = SubElement(comicinfo, 'Month')
+        month.text = f'{publish_date.month}'
+
+    else:
+        year = SubElement(comicinfo, 'Year')
+        year.text = "NHentai"
+
+        month = SubElement(comicinfo, 'Month')
+        month.text = "NHentai"
 
     writer = SubElement(comicinfo, 'Writer')
     writer.text = tryIter(metadata.staff['story'])
@@ -553,7 +579,7 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
 
     LOG.info(f'Finished creating ComicInfo object for "{metadata.series_title}", chapter {chapter_number}.',
              extra=logging_info)
-    return parseString(tostring(comicinfo)).toprettyxml(indent="   ")
+    return parseString(tostring(comicinfo,short_empty_elements=False)).toprettyxml(indent="   ")
 
 
 def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
@@ -570,6 +596,8 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
 
 
 def tryIter(x):
+    if isinstance(x, str):
+        return x
     if x is None:
         return "None"
     try:
