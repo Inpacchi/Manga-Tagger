@@ -8,3 +8,5 @@ pytz==2020.1
 fuzzywuzzy==0.18.0
 py-manga==0.1.5
 python-Levenshtein==0.12.2
+beautifulsoup4==4.9.3
+NHentai-API==0.0.15
