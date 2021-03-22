@@ -1,7 +1,8 @@
 import logging
+import re
 from datetime import datetime
 
-from jikanpy import Jikan
+from jikanpy import Jikan, APIException
 from pytz import timezone
 
 from MangaTaggerLib.api import MTJikan
@@ -34,6 +35,7 @@ class Metadata:
         Metadata._log.info('Successfully created Metadata model.', extra=logging_info)
 
     def _construct_api_metadata(self, details, logging_info):
+        self.source = details["source"]
         self._id = tryKey(details, "mal_id")
         self.series_title = tryKey(details, "series_title")
 
@@ -72,6 +74,7 @@ class Metadata:
         self.scrape_date = timezone(AppSettings.timezone).localize(datetime.now()).strftime('%Y-%m-%d %I:%M %p %Z')
 
     def _construct_database_metadata(self, details):
+        self.source = details["source"]
         self._id = details['_id']
         self.series_title = details['series_title']
         self.series_title_eng = details['series_title_eng']
@@ -191,6 +194,7 @@ class Metadata:
 
 
 class Data:
+    source = None
     anilist_id = None
     mal_id = None
     mangaupdates_id = None
@@ -209,7 +213,13 @@ class Data:
     serializations = {}
 
     def __init__(self, details, title, MU_id=None):
-        if details["source"] == "AL":
+        if details["source"] == "AniList":
+            source = details["source"]
+            if details["format"] == "ONE_SHOT":
+                for x in details["relations"]["edges"]:
+                    if x["relationType"] == "ALTERNATIVE":
+                        details = x["node"]
+                        details["source"] = source
             self.series_title = title
             self.anilist_id = details["id"]
             self.mal_id = details["idMal"]
@@ -217,7 +227,15 @@ class Data:
             self.series_title_jap = details["title"]["romaji"]
             self.status = details["status"]
             self.type = details["type"]
-            self.description = details["description"]
+            raw = details["description"]
+            cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
+            cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
+            cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
+            toDelete = ["<i>", "</i>", "<b>", "</b>"]
+            for x in toDelete:
+                cleaned = cleaned.replace(x, "")
+            cleaned = cleaned.replace("<br>", "\n")
+            self.description = cleaned
             if self.mal_id is not None:
                 self.mal_url = r"myanimelist.net/manga/" + str(self.mal_id)
             self.anilist_url = details["siteUrl"]
@@ -236,7 +254,10 @@ class Data:
                 elif person["role"] == "Story":
                     self.staff["story"].append(person["node"]["name"]["full"])
             if self.mal_id is not None:
-                self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
+                try:
+                    self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
+                except APIException:
+                    pass
         elif details["source"] == "MangaUpdates":
             self.series_title = title
             self.mangaupdates_id = MU_id
@@ -310,9 +331,11 @@ class Data:
             self.staff["story"] = [x for x in details["staff"]["story"]]
             self.staff["art"] = [x for x in details["staff"]["art"]]
             self.serializations = details["serializations"]
+        self.source = details["source"]
 
     def toDict(self):
         dataDict = {
+            "source": self.source,
             "anilist_id": self.anilist_id,
             "mal_id": self.mal_id,
             "mangaupdates_id": self.mangaupdates_id,

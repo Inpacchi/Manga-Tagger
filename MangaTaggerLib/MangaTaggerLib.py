@@ -367,7 +367,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                         for title in titles:
                             if compare(manga_title, title) >= 0.9:
                                 manga = sources["AniList"].manga(result["id"], logging_info)
-                                manga["source"] = "AL"
+                                manga["source"] = "AniList"
                                 metadata = Data(manga, manga_title)
                                 raise MangaMatchedException("Found a match")
                     elif source == "MangaUpdates":

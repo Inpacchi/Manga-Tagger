@@ -211,6 +211,7 @@ class AniList:
         form = """
         query ($id: Int){ # Define which variables will be used in the query (id)
           Media (id: $id, type: MANGA) { 
+            format
             title {
               romaji
               english
@@ -244,6 +245,51 @@ class AniList:
                   }
                 }
                 role
+              }
+            }
+            relations {
+              edges {
+                relationType
+                node {
+                    format
+                    title {
+                      romaji
+                      english
+                      native
+                    }
+                    id
+                    idMal
+                    type
+                    description
+                    genres
+                    title {
+                        romaji
+                        english
+                        native
+                    }
+                    synonyms
+                    startDate {
+                      year
+                      month
+                      day
+                    }
+                    staff {
+                      edges {
+                        node {
+                          name {
+                            first
+                            last
+                            full
+                            alternative
+                          }
+                        }
+                        role
+                      }
+                    }
+                    status
+                    siteUrl
+                }
+                id
               }
             }
             status
