@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Optional, Dict, Mapping, Union, Any
 import re
 
+from bs4 import BeautifulSoup
 from jikanpy import Jikan
 from NHentai import NHentai, SearchPage, Doujin, DoujinThumbnail
 import pymanga
@@ -280,9 +281,66 @@ class MangaUpdates:
 
 
 class Fakku:
-    @classmethod
-    def initialize(cls):
-        cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
+    def __init__(self):
+        self.headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET',
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Max-Age': '3600',
+            'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:52.0) Gecko/20100101 Firefox/52.0'
+        }
+
+    def search(self, title):
+        query = re.sub(r"\[([^]]+)\]", "", str(title))
+        query = re.sub(r"\(([^)]+)\)", "", query)
+        url = r"https://www.fakku.net/hentai/" + query.strip().replace(" ", "-") + "-english"
+        req = requests.get(url, self.headers)
+        soup = BeautifulSoup(req.content, 'html.parser')
+        dct = {
+            "success": str(soup.find("title").contents[0]) != "Error Message",
+            "url": url
+        }
+        return [dct]
+
+    def manga(self, url):
+        req = requests.get(url, self.headers)
+        soup = BeautifulSoup(req.content, 'html.parser')
+        anilist_id = None
+        mal_id = None
+        mangaupdates_id = None
+        series_title = soup.find("title").contents[0].split(" Hentai by")[0]
+        series_title_eng = None
+        series_title_jap = None
+        status = "Finished"
+        type = "Doujinshi"
+        description = soup.find(text="Description").parent.parent.contents[3].get_text(strip=True)
+        mal_url = url
+        anilist_url = None
+        mangaupdates_url = None
+        publish_date = None
+        genres = [x.get_text(strip=True) for x in soup.find_all(lambda x: x.has_attr("href") and r"/tags" in x["href"])][1:]
+        artists = [x.get_text(strip=True) for x in filter(lambda x: x != ", ",soup.find("div", {"class": "row-right"}).contents)]
+        staff = {"story": artists, "art": artists}
+        serializations = "FAKKU"
+        dct = {
+            "anilist_id": anilist_id,
+            "mal_id": mal_id,
+            "mangaupdates_id": mangaupdates_id,
+            "series_title": series_title,
+            "series_title_eng": series_title_eng,
+            "series_title_jap": series_title_jap,
+            "status": status,
+            "type": type,
+            "description": description,
+            "mal_url": mal_url,
+            "anilist_url": anilist_url,
+            "mangaupdates_url": mangaupdates_url,
+            "publish_date": publish_date,
+            "genres": genres,
+            "staff": staff,
+            "serializations": serializations
+        }
+        return dct
 
 
 class NH(NHentai):
@@ -297,7 +355,6 @@ class NH(NHentai):
         book = re.sub(r"\[([^]]+)\]", "", title)
         book = re.findall(r"\(([^)]+)\)", book)
         doujin = super(NH, self)._get_doujin(id)
-
         anilist_id = None
         mal_id = None
         mangaupdates_id = None

@@ -298,7 +298,7 @@ class Data:
                 elif person[1] == "Story":
                     self.staff["story"].append(person[0])
             self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
-        elif details["source"] == "NHentai":
+        elif details["source"] == "NHentai" or details["source"] == "Fakku":
             self.series_title = details["series_title"]
             self.mangaupdates_id = None
             self.status = None

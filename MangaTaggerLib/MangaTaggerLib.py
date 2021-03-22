@@ -13,7 +13,7 @@ from zipfile import ZipFile
 from jikanpy.exceptions import APIException
 
 from MangaTaggerLib._version import __version__
-from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates, NH
+from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates, NH, Fakku
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
     MangaNotFoundError, MangaMatchedException
@@ -340,41 +340,45 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         logging_info['metadata'] = manga_metadata.__dict__
     # Get metadata
     else:
-        sources = {"MAL": MTJikan(), "AniList": AniList(), "MangaUpdates": MangaUpdates(), "NHentai": NH()}
+        sources = {
+            "MAL": MTJikan(),
+            "AniList": AniList(),
+            "MangaUpdates": MangaUpdates(),
+            "NHentai": NH(),
+            "Fakku": Fakku()}
         # sources["Kitsu"] = Kitsu
-        preferences = ["AniList", "MangaUpdates", "MAL", "NHentai"]
+        preferences = ["AniList", "MangaUpdates", "MAL", "Fakku", "NHentai"]
         results = {}
         metadata = None
         results["MAL"] = sources["MAL"].search('manga', manga_title)
         results["AniList"] = sources["AniList"].search(manga_title, logging_info)
         results["MangaUpdates"] = sources["MangaUpdates"].search(manga_title)
         results["NHentai"] = sources["NHentai"].search(manga_title)
+        results["Fakku"] = sources["Fakku"].search(manga_title)
         try:
             for source in preferences:
                 for result in results[source]:
                     if source == "AniList":
                         # Construct Anilist XML
-                        """{'id': 114527, 'type': 'MANGA', 'title': {'romaji': 'Uchi no Kaisha no Chiisai Senpai no Hanashi', 'english': None, 'native': 'うちの会社の小さい先輩の話'}, 'synonyms': ['My Tiny Senpai From Work', "My Company's Small Senpai"]}
-    {'id': 122192, 'type': 'MANGA', 'title': {'romaji': 'Uchi no Kaisha no Chiisai Senpai no Hanashi', 'english': None, 'native': 'うちの会社の小さい先輩の話'}, 'synonyms': ['Story of a Small Senior in My Company', "My Company's Small Senpai", 'My Tiny Senpai From Work']}"""
                         titles = [x[1] for x in result["title"].items() if x[1] is not None]
                         [titles.append(x) for x in result["synonyms"]]
                         for title in titles:
                             if compare(manga_title, title) >= 0.9:
-                                manga = AniList.manga(result["id"], logging_info)
+                                manga = sources["AniList"].manga(result["id"], logging_info)
                                 manga["source"] = "AL"
                                 metadata = Data(manga, manga_title)
                                 raise MangaMatchedException("Found a match")
                     elif source == "MangaUpdates":
                         # Construct MangaUpdates XML
                         if compare(manga_title, result['title']) >= 0.9:
-                            manga = pymanga.series(result["id"])
+                            manga = sources["MangaUpdates"].series(result["id"])
                             manga["source"] = "MangaUpdates"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
                     elif source == "MAL":
                         if compare(manga_title, result['title']) >= 0.9:
                             try:
-                                manga = MTJikan().manga(result["mal_id"])
+                                manga = sources["MAL"].manga(result["mal_id"])
                             except (APIException, ConnectionError) as e:
                                 LOG.warning(e, extra=logging_info)
                                 LOG.warning(
@@ -385,9 +389,15 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                             manga["source"] = "MAL"
                             metadata = Data(manga, manga_title, result["mal_id"])
                             raise MangaMatchedException("Found a match")
+                    elif source == "Fakku":
+                        if result["success"]:
+                            manga = sources["Fakku"].manga(result["url"])
+                            manga["source"] = "Fakku"
+                            metadata = Data(manga, manga_title)
+                            raise MangaMatchedException("Found a match")
                     elif source == "NHentai":
                         if compare(manga_title, result["title"]):
-                            manga = NH().manga(result["id"], result["title"])
+                            manga = sources["NHentai"].manga(result["id"], result["title"])
                             manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
@@ -524,10 +534,10 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
 
     else:
         year = SubElement(comicinfo, 'Year')
-        year.text = "NHentai"
+        year.text = None
 
         month = SubElement(comicinfo, 'Month')
-        month.text = "NHentai"
+        month.text = None
 
     writer = SubElement(comicinfo, 'Writer')
     writer.text = tryIter(metadata.staff['story'])
