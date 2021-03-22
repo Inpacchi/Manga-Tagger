@@ -401,10 +401,12 @@ class NH(NHentai):
         book = re.sub(r"\[([^]]+)\]", "", title)
         book = re.findall(r"\(([^)]+)\)", book)
         doujin = super(NH, self)._get_doujin(id)
+        cleaned = re.sub(r"\[([^]]+)\]", "", str(title))
+        cleaned = re.sub(r"\(([^)]+)\)", "", cleaned)
         anilist_id = None
         mal_id = None
         mangaupdates_id = None
-        series_title = doujin.title
+        series_title = cleaned
         series_title_eng = None
         series_title_jap = None
         status = "Finished"
@@ -417,7 +419,7 @@ class NH(NHentai):
         genres = doujin.tags
         artists = [x.title() for x in doujin.artists]
         staff = {"story": artists, "art": artists}
-        if book is not None:
+        if book is True:
             serializations = book[0]
         else:
             serializations = None

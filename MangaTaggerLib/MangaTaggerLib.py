@@ -141,11 +141,11 @@ def file_renamer(filename, logging_info):
         if filename.find('-.-') == -1:
             raise UnparsableFilenameError(filename, '-.-')
 
-        filename = filename.split(' -.- ')
+        filename = filename.split('-.- ')
         LOG.info(f'Filename was successfully parsed as {filename}.', extra=logging_info)
     except UnparsableFilenameError as ufe:
         LOG.exception(ufe, extra=logging_info)
-        return None
+        return [f'000.cbz', "000"]
 
     manga_title: str = filename[0]
     chapter_title: str = path.splitext(filename[1].lower())[0]
@@ -177,10 +177,12 @@ def file_renamer(filename, logging_info):
             delimiter = 'act'
             delimiter_index = 3
         else:
-            raise UnparsableFilenameError(filename, 'ch/chapter')
-    except UnparsableFilenameError as ufe:
-        LOG.exception(ufe, extra=logging_info)
-        return None
+            delimiter = ""
+            delimiter_index = len(chapter_title)
+            #raise UnparsableFilenameError(filename, 'ch/chapter')
+    #except UnparsableFilenameError as ufe:
+    #    LOG.exception(ufe, extra=logging_info)
+    #    return None
     except MangaMatchedException:
         if 'chapter' in chapter_title:
             chapter_title = chapter_title.replace(' ', '')
@@ -210,13 +212,15 @@ def file_renamer(filename, logging_info):
             LOG.debug(f'Iterator i: {i}')
         else:
             break
+    if chapter_number == "":
+        chapter_number = "0"
 
     if chapter_number.find('.') == -1:
         chapter_number = chapter_number.zfill(3)
     else:
         chapter_number = chapter_number.zfill(5)
 
-    filename = f'{manga_title} {chapter_number}.cbz'
+    filename = f'{chapter_number}.cbz'
 
     LOG.debug(f'chapter_number: {chapter_number}')
 
@@ -352,7 +356,11 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         preferences = ["AniList", "MangaUpdates", "MAL", "Fakku", "NHentai"]
         results = {}
         metadata = None
-        results["MAL"] = sources["MAL"].search('manga', manga_title)
+        try:
+            results["MAL"] = sources["MAL"].search('manga', manga_title)
+        except:
+            results["MAL"] = []
+            pass
         results["AniList"] = sources["AniList"].search(manga_title, logging_info)
         results["MangaUpdates"] = sources["MangaUpdates"].search(manga_title)
         results["NHentai"] = sources["NHentai"].search(manga_title)
@@ -398,7 +406,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                             metadata = Data(manga, manga_title)
                             raise MangaMatchedException("Found a match")
                     elif source == "NHentai":
-                        if compare(manga_title, result["title"]):
+                        if compare(manga_title, result["title"]) >= 0.8:
                             manga = sources["NHentai"].manga(result["id"], result["title"])
                             manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])

@@ -178,8 +178,8 @@ class AppSettings:
 
         # ChapterCustomRename MUST FOLLOW this format to be properly parsed
         if settings_json['saveto']['ChapterCustomRename'].find('-.-') == -1 \
-                or settings_json['saveto']['ChapterCustomRename'] != '%MANGA% -.- %CHAPTER%':
-            settings_json['saveto']['ChapterCustomRename'] = '%MANGA% -.- %CHAPTER%'
+                or settings_json['saveto']['ChapterCustomRename'] != '-.- %CHAPTER%':
+            settings_json['saveto']['ChapterCustomRename'] = '-.- %CHAPTER%'
             changes_made = True
             cls._log.info('Setting "Chapter Custom Rename" should be configured as "%MANGA% -.- '
                           f'%CHAPTER%" for parsing by Manga Tagger; this configuration has been applied')
