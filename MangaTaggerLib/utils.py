@@ -15,6 +15,7 @@ from pythonjsonlogger import jsonlogger
 from MangaTaggerLib.database import Database
 from MangaTaggerLib.task_queue import QueueWorker
 from MangaTaggerLib.api import AniList
+from sys import argv
 
 
 class AppSettings:
@@ -156,7 +157,10 @@ class AppSettings:
                 cls._log.info('Download directory has not been set; a file dialog window will be opened to input '
                               'the destination download directory.')
                 Tk().withdraw()
-                download_dir = Path(filedialog.askdirectory(title='Select the folder where you want your manga to be '
+                if len(argv) == 2:
+                    download_dir = argv[1]
+                else:
+                    download_dir = Path(filedialog.askdirectory(title='Select the folder where you want your manga to be '
                                                                   'downloaded to'))
 
         # Load settings
@@ -290,7 +294,10 @@ class AppSettings:
     @classmethod
     def _create_settings(cls):
         Tk().withdraw()
-        fmd_dir = filedialog.askdirectory(title='Select the folder that Free Manga Downloader is installed in')
+        if len(argv) == 2:
+            fmd_dir = argv[0]
+        else:
+            fmd_dir = filedialog.askdirectory(title='Select the folder that Free Manga Downloader is installed in')
 
         return {
             "application": {
