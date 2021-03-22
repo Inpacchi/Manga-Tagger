@@ -1,4 +1,6 @@
 import logging
+import os
+import shutil
 import time
 from datetime import datetime
 from os import path
@@ -422,7 +424,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
     if AppSettings.mode_settings is None or ('write_comicinfo' in AppSettings.mode_settings.keys()
                                              and AppSettings.mode_settings['write_comicinfo']):
         comicinfo_xml = construct_comicinfo_xml(manga_metadata, manga_chapter_number, logging_info)
-        reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info)
+        reconstruct_manga_chapter(comicinfo_xml[0], manga_file_path, comicinfo_xml[1], logging_info)
 
     return manga_metadata
 
@@ -587,12 +589,16 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     comicinfo.set('xmlns:xsd', 'http://www.w3.org/2001/XMLSchema')
     comicinfo.set('xmlns:xsi', 'http://www.w3.org/2001/XMLSchema-instance')
 
+    hentai = False
+    if metadata.source == "Fakku" or metadata.source == "NHentai":
+        hentai = True
+
     LOG.info(f'Finished creating ComicInfo object for "{metadata.series_title}", chapter {chapter_number}.',
              extra=logging_info)
-    return parseString(tostring(comicinfo,short_empty_elements=False)).toprettyxml(indent="   ")
+    return [parseString(tostring(comicinfo,short_empty_elements=False)).toprettyxml(indent="   "), hentai]
 
 
-def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
+def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, isHentai,logging_info):
     try:
         with ZipFile(manga_file_path, 'a') as zipfile:
             zipfile.writestr('ComicInfo.xml', comicinfo_xml)
@@ -601,6 +607,13 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, logging_info):
         LOG.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
                     extra=logging_info)
         return
+    if isHentai:
+        dir = "\\".join(str(manga_file_path.absolute()).split("\\")[:-1])
+        dirh = Path(dir.replace("Manga", "Hentai"))
+        if not os.path.isdir(dirh):
+            os.mkdir(dirh)
+        shutil.move(manga_file_path, Path(str(manga_file_path.absolute()).replace("Manga", "Hentai")))
+        os.remove(dir)
 
     LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
 
