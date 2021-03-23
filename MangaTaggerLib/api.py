@@ -394,7 +394,11 @@ class NH(NHentai):
         super(NH, self).__init__
 
     def search(self, query):
-        search_obj: SearchPage = super(NH, self).search(query=query, sort="popular", page=1)
+        cleanquery = query
+        tldfilter = [".us", ".com"]
+        for x in tldfilter:
+            cleanquery = cleanquery.replace(x, "")
+        search_obj: SearchPage = super(NH, self).search(query=cleanquery, sort="popular", page=1)
         return [x.__dict__ for x in search_obj.doujins]
 
     def manga(self, id, title):

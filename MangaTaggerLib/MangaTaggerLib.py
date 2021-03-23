@@ -43,6 +43,7 @@ def main():
 def process_manga_chapter(file_path: Path, event_id):
     filename = file_path.name
     directory_path = file_path.parent
+    #directory_name = str(file_path.parent.name).replace(r"\'", r"'")
     directory_name = file_path.parent.name
 
     logging_info = {
@@ -591,7 +592,7 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, isHentai,logging_i
         if not os.path.isdir(dirh):
             os.mkdir(dirh)
         shutil.move(manga_file_path, Path(str(manga_file_path.absolute()).replace("Manga", "Hentai")))
-        os.rmdir(Path(folderdir))
+        shutil.rmtree(Path(folderdir))
         folderdir = dirh
     thumb(folderdir)
 
