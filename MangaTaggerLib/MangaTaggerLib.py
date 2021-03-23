@@ -176,7 +176,7 @@ def file_renamer(filename, mangatitle, logging_info):
                 ch_num = ch_num.lstrip("0") or "0"
                 chaptertitle = re.split(r'[\d.]+', chaptertext, maxsplit=1)[1].strip()
                 if not chaptertitle:
-                    return [f"Chapter {ch_num}.cbz", ch_num, None]
+                    return [f"Chapter {ch_num}.cbz", ch_num, mangatitle]
                 if vol_num:
                     return [f"Vol. {vol_num} Chapter {ch_num}.cbz", ch_num, chaptertitle]
                 else:
@@ -490,13 +490,14 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     series.text = metadata.series_title
 
     alt_series = SubElement(comicinfo, 'AlternateSeries')
-    if metadata.series_title_eng and compare(metadata.series_title, metadata.series_title_eng) != 1:
-        series_title_lang = Translator().detect(metadata.series_title).lang
-        if series_title_lang == "ja":
-            alt_series.text = metadata.series_title_eng
-        elif series_title_lang == "en":
-            if metadata.series_title_jap:
-                alt_series.text = metadata.series_title_jap
+    series_title_lang = Translator().detect(metadata.series_title).lang
+    if metadata.series_title_eng and series_title_lang == "ja":
+        alt_series.text = metadata.series_title_eng
+    elif metadata.series_title_jap and series_title_lang == "en":
+        alt_series.text = metadata.series_title_jap
+
+    if not alt_series.text and metadata.synonyms:
+        alt_series.text = tryIter(metadata.synonyms)
 
     number = SubElement(comicinfo, 'Number')
     number.text = f'{chapter_number}'
@@ -506,7 +507,7 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
 
     page_count = SubElement(comicinfo, 'PageCount')
     if metadata.page_count:
-        page_count.text = metadata.page_count
+        page_count.text = str(metadata.page_count)
 
     if metadata.publish_date:
         publish_date = datetime.strptime(metadata.publish_date, '%Y-%m-%d').date()

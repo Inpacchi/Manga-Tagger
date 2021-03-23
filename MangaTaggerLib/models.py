@@ -51,7 +51,7 @@ class Metadata:
             self.series_title_jap = None
         else:
             self.series_title_jap = tryKey(details, "series_title_jap")
-
+        self.synonyms = tryKey(details, "synonyms")
         self.status = tryKey(details, "status")
         self.type = tryKey(details, "type")
         self.description = tryKey(details, "description")
@@ -83,9 +83,11 @@ class Metadata:
         self.series_title = details['series_title']
         self.series_title_eng = details['series_title_eng']
         self.series_title_jap = details['series_title_jap']
+        self.synonyms = details['synonyms']
         self.status = details['status']
         self.type = details['type']
         self.description = details['description']
+        self.page_count = details['page_count']
         self.mal_url = details['mal_url']
         self.anilist_url = details['anilist_url']
         self.publish_date = details['publish_date']
@@ -205,6 +207,7 @@ class Data:
     series_title = None
     series_title_eng = None
     series_title_jap = None
+    synonyms = None
     status = None
     type = None
     description = None
@@ -234,6 +237,7 @@ class Data:
                     if Translator().detect(x).lang == "en":
                         self.series_title_eng = x
                         break
+            self.synonyms = details["synonyms"]
             self.series_title_jap = details["title"]["romaji"]
             pref = {"english": self.series_title_eng, "romaji": details["title"]["romaji"], "native": details["title"]["native"]}
             for x in anilistpreferences:
@@ -354,6 +358,7 @@ class Data:
             "series_title": self.series_title,
             "series_title_eng": self.series_title_eng,
             "series_title_jap": self.series_title_jap,
+            "synonyms": self.synonyms,
             "status": self.status,
             "type": self.type,
             "description": self.description,
