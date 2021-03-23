@@ -162,7 +162,7 @@ def file_renamer(filename, mangatitle, logging_info):
                 if re.search(r'[\d.]+', chaptertext) is None:
                     break
                 ch_num = re.search(r'[\d.]+', chaptertext).group(0)
-                ch_num = str(int(ch_num))
+                ch_num = ch_num.lstrip("0") or "0"
                 chaptertitle = re.split(r'[\d.]+', chaptertext, maxsplit=1)[1].strip()
                 if not chaptertitle:
                     return [f"Chapter {ch_num}.cbz", ch_num, None]
