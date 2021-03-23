@@ -55,6 +55,7 @@ class Metadata:
         self.status = tryKey(details, "status")
         self.type = tryKey(details, "type")
         self.description = tryKey(details, "description")
+        self.page_count = tryKey(details, "page_count")
         self.mal_url = tryKey(details, "mal_url")
         self.anilist_url = tryKey(details, "anilist_url")
         if tryKey(details, "mangaupdates_url") is not None:
@@ -207,6 +208,7 @@ class Data:
     status = None
     type = None
     description = None
+    page_count = None
     mal_url = None
     anilist_url = None
     mangaupdates_url = None
@@ -334,6 +336,7 @@ class Data:
             self.type = details["type"]
             if details["description"]:
                 self.description = cleanDescription(details["description"])
+            self.page_count = details["page_count"]
             self.mal_url = details["mal_url"]
             self.publish_date = None
             self.genres = details["genres"]
@@ -354,6 +357,7 @@ class Data:
             "status": self.status,
             "type": self.type,
             "description": self.description,
+            "page_count": self.page_count,
             "mal_url": self.mal_url,
             "anilist_url": self.anilist_url,
             "mangaupdates_url": self.mangaupdates_url,

@@ -489,14 +489,13 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     series = SubElement(comicinfo, 'Series')
     series.text = metadata.series_title
 
+    alt_series = SubElement(comicinfo, 'AlternateSeries')
     if metadata.series_title_eng and compare(metadata.series_title, metadata.series_title_eng) != 1:
         series_title_lang = Translator().detect(metadata.series_title).lang
         if series_title_lang == "ja":
-            alt_series = SubElement(comicinfo, 'AlternateSeries')
             alt_series.text = metadata.series_title_eng
         elif series_title_lang == "en":
             if metadata.series_title_jap:
-                alt_series = SubElement(comicinfo, 'AlternateSeries')
                 alt_series.text = metadata.series_title_jap
 
     number = SubElement(comicinfo, 'Number')
@@ -504,6 +503,10 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
 
     summary = SubElement(comicinfo, 'Summary')
     summary.text = metadata.description
+
+    page_count = SubElement(comicinfo, 'PageCount')
+    if metadata.page_count:
+        page_count.text = metadata.page_count
 
     if metadata.publish_date:
         publish_date = datetime.strptime(metadata.publish_date, '%Y-%m-%d').date()

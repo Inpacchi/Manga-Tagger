@@ -360,6 +360,7 @@ class Fakku:
         status = "Finished"
         type = "Doujinshi"
         description = soup.find(text="Description").parent.parent.contents[3].get_text(strip=True)
+        page_count = re.search(r'[\d.]+',soup.find(text="Pages").parent.parent.contents[3].get_text(strip=True)).group(0)
         mal_url = url
         anilist_url = None
         mangaupdates_url = None
@@ -378,6 +379,7 @@ class Fakku:
             "status": status,
             "type": type,
             "description": description,
+            "page_count": page_count,
             "mal_url": mal_url,
             "anilist_url": anilist_url,
             "mangaupdates_url": mangaupdates_url,
@@ -416,6 +418,7 @@ class NH(NHentai):
         status = "Finished"
         type = "Doujinshi"
         description = None
+        page_count = doujin.total_pages
         mal_url = r"https://nhentai.net/g/" + str(id) + r"/"
         anilist_url = None
         mangaupdates_url = None
@@ -437,6 +440,7 @@ class NH(NHentai):
             "status": status,
             "type": type,
             "description": description,
+            "page_count": page_count,
             "mal_url": mal_url,
             "anilist_url": anilist_url,
             "mangaupdates_url": mangaupdates_url,
