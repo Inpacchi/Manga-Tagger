@@ -68,6 +68,9 @@ class MTJikan(Jikan):
         self.last_api_call = datetime.now()
         search_results = super(MTJikan, self).manga(id, extension, page)
         self.session.close()
+        search_results["source"] = "MAL"
+        search_results["id"] = id
+        search_results["url"] = r"https://myanimelist.net/manga/" + id
         return search_results
 
 
@@ -323,7 +326,11 @@ class MangaUpdates:
         return data
 
     def series(cls, id):
-        return pymanga.series(id)
+        dct = pymanga.series(id)
+        dct["source"] = "MangaUpdates"
+        dct["id"] = id
+        dct["url"] = r"https://www.mangaupdates.com/series.html?id=" + id
+        return dct
 
 
 class Fakku:
@@ -351,9 +358,6 @@ class Fakku:
     def manga(self, url):
         req = requests.get(url, self.headers)
         soup = BeautifulSoup(req.content, 'html.parser')
-        anilist_id = None
-        mal_id = None
-        mangaupdates_id = None
         series_title = soup.find("title").contents[0].split(" Hentai by")[0]
         series_title_eng = None
         series_title_jap = None
@@ -361,18 +365,14 @@ class Fakku:
         type = "Doujinshi"
         description = soup.find(text="Description").parent.parent.contents[3].get_text(strip=True)
         page_count = re.search(r'[\d.]+',soup.find(text="Pages").parent.parent.contents[3].get_text(strip=True)).group(0)
-        mal_url = url
-        anilist_url = None
-        mangaupdates_url = None
         publish_date = None
         genres = [x.get_text(strip=True) for x in soup.find_all(lambda x: x.has_attr("href") and r"/tags" in x["href"])][1:]
         artists = [x.get_text(strip=True) for x in filter(lambda x: x != ", ",soup.find("div", {"class": "row-right"}).contents)]
         staff = {"story": artists, "art": artists}
         serializations = "FAKKU"
         dct = {
-            "anilist_id": anilist_id,
-            "mal_id": mal_id,
-            "mangaupdates_id": mangaupdates_id,
+            "source": "Fakku",
+            "id": None,
             "series_title": series_title,
             "series_title_eng": series_title_eng,
             "series_title_jap": series_title_jap,
@@ -380,9 +380,7 @@ class Fakku:
             "type": type,
             "description": description,
             "page_count": page_count,
-            "mal_url": mal_url,
-            "anilist_url": anilist_url,
-            "mangaupdates_url": mangaupdates_url,
+            "url": url,
             "publish_date": publish_date,
             "genres": genres,
             "staff": staff,
@@ -409,9 +407,6 @@ class NH(NHentai):
         doujin = super(NH, self)._get_doujin(id)
         cleaned = re.sub(r"\[([^]]+)\]", "", str(title))
         cleaned = re.sub(r"\(([^)]+)\)", "", cleaned)
-        anilist_id = None
-        mal_id = None
-        mangaupdates_id = None
         series_title = cleaned
         series_title_eng = None
         series_title_jap = None
@@ -419,9 +414,7 @@ class NH(NHentai):
         type = "Doujinshi"
         description = None
         page_count = doujin.total_pages
-        mal_url = r"https://nhentai.net/g/" + str(id) + r"/"
-        anilist_url = None
-        mangaupdates_url = None
+        url = r"https://nhentai.net/g/" + str(id) + r"/"
         publish_date = None
         genres = doujin.tags
         artists = [x.title() for x in doujin.artists]
@@ -431,9 +424,8 @@ class NH(NHentai):
         else:
             serializations = None
         dct = {
-            "anilist_id": anilist_id,
-            "mal_id": mal_id,
-            "mangaupdates_id": mangaupdates_id,
+            "source": "NHentai",
+            "id": id,
             "series_title": series_title,
             "series_title_eng": series_title_eng,
             "series_title_jap": series_title_jap,
@@ -441,9 +433,7 @@ class NH(NHentai):
             "type": type,
             "description": description,
             "page_count": page_count,
-            "mal_url": mal_url,
-            "anilist_url": anilist_url,
-            "mangaupdates_url": mangaupdates_url,
+            "url": url,
             "publish_date": publish_date,
             "genres": genres,
             "staff": staff,

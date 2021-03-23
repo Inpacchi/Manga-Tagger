@@ -181,7 +181,7 @@ def file_renamer(filename, mangatitle, logging_info):
                     return [f"Vol. {vol_num} Chapter {ch_num}.cbz", ch_num, chaptertitle]
                 else:
                     return [f"Chapter {ch_num}.cbz", ch_num, chaptertitle]
-    elif 'oneshot' in filename:
+    elif 'oneshot' in filename.lower():
         LOG.debug(f'manga_type: oneshot')
         return [f'{mangatitle}.cbz', 'oneshot', mangatitle]
 
@@ -335,14 +335,12 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                         for title in titles:
                             if compare(manga_title, title) >= 0.9:
                                 manga = sources["AniList"].manga(result["id"], logging_info)
-                                manga["source"] = "AniList"
                                 metadata = Data(manga, manga_title)
                                 raise MangaMatchedException("Found a match")
                     elif source == "MangaUpdates":
                         # Construct MangaUpdates XML
                         if compare(manga_title, result['title']) >= 0.9:
                             manga = sources["MangaUpdates"].series(result["id"])
-                            manga["source"] = "MangaUpdates"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
                     elif source == "MAL":
@@ -356,19 +354,16 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                                     'all rate limiting limits...')
                                 time.sleep(60)
                                 manga = MTJikan().manga(result["mal_id"])
-                            manga["source"] = "MAL"
                             metadata = Data(manga, manga_title, result["mal_id"])
                             raise MangaMatchedException("Found a match")
                     elif source == "Fakku":
                         if result["success"]:
                             manga = sources["Fakku"].manga(result["url"])
-                            manga["source"] = "Fakku"
                             metadata = Data(manga, manga_title)
                             raise MangaMatchedException("Found a match")
                     elif source == "NHentai":
                         if compare(manga_title, result["title"]) >= 0.8:
                             manga = sources["NHentai"].manga(result["id"], result["title"])
-                            manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
             raise MangaNotFoundError(manga_title)
@@ -553,12 +548,7 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
             genre.text = f'{mg}'
 
     web = SubElement(comicinfo, 'Web')
-    if metadata.anilist_url:
-        web.text = metadata.anilist_url
-    elif metadata.mal_url:
-        web.text = metadata.mal_url
-    else:
-        web.text = "None"
+    web.text = tryIter(metadata.url)
 
     language = SubElement(comicinfo, 'LanguageISO')
     language.text = 'en'

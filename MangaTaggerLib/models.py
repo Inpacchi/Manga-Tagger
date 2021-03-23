@@ -41,6 +41,7 @@ class Metadata:
         self.source = details["source"]
         #self._id = tryKey(details, "mal_id")
         self.series_title = tryKey(details, "series_title")
+        self.id = tryKey(details, "id")
 
         if tryKey(details, "series_title_eng") is None:
             self.series_title_eng = None
@@ -56,10 +57,7 @@ class Metadata:
         self.type = tryKey(details, "type")
         self.description = tryKey(details, "description")
         self.page_count = tryKey(details, "page_count")
-        self.mal_url = tryKey(details, "mal_url")
-        self.anilist_url = tryKey(details, "anilist_url")
-        if tryKey(details, "mangaupdates_url") is not None:
-            self.mal_url = details["mangaupdates_url"]
+        self.url = tryKey(details, "url")
         self.publish_date = tryKey(details, "publish_date")
         self.genres = tryKey(details, "genres")
         staff = tryKey(details, "staff")
@@ -79,7 +77,8 @@ class Metadata:
 
     def _construct_database_metadata(self, details):
         self.source = details["source"]
-        self._id = details['_id']
+        #self._id = details['_id']
+        self.id = details["id"]
         self.series_title = details['series_title']
         self.series_title_eng = details['series_title_eng']
         self.series_title_jap = details['series_title_jap']
@@ -88,8 +87,7 @@ class Metadata:
         self.type = details['type']
         self.description = details['description']
         self.page_count = details['page_count']
-        self.mal_url = details['mal_url']
-        self.anilist_url = details['anilist_url']
+        self.url = details["url"]
         self.publish_date = details['publish_date']
         self.genres = details['genres']
         self.staff = details['staff']
@@ -201,9 +199,7 @@ class Metadata:
 
 class Data:
     source = None
-    anilist_id = None
-    mal_id = None
-    mangaupdates_id = None
+    id = None
     series_title = None
     series_title_eng = None
     series_title_jap = None
@@ -212,9 +208,7 @@ class Data:
     type = None
     description = None
     page_count = None
-    mal_url = None
-    anilist_url = None
-    mangaupdates_url = None
+    url = None
     publish_date = None
     genres = []
     staff = {"story": [], "art": []}
@@ -222,15 +216,14 @@ class Data:
 
     def __init__(self, details, title, MU_id=None):
         if details["source"] == "AniList":
-            source = details["source"]
             if details["format"] == "ONE_SHOT":
                 for x in details["relations"]["edges"]:
                     if x["relationType"] == "ALTERNATIVE":
                         details = x["node"]
                         details["source"] = source
             self.series_title = title
-            self.anilist_id = details["id"]
-            self.mal_id = details["idMal"]
+            self.id = details["id"]
+            mal_id = details["idMal"]
             self.series_title_eng = details["title"]["english"]
             if self.series_title_eng is None or self.series_title_eng == "null":
                 for x in details["synonyms"]:
@@ -248,9 +241,7 @@ class Data:
             self.type = details["type"]
             if details["description"]:
                 self.description = cleanDescription(details["description"])
-            if self.mal_id is not None:
-                self.mal_url = r"myanimelist.net/manga/" + str(self.mal_id)
-            self.anilist_url = details["siteUrl"]
+            self.url = details["siteUrl"]
             self.publish_date = datetime.strptime(
                 str(details["startDate"]["year"]) + "-" + str(details["startDate"]["month"]) + "-" + str(
                     details["startDate"]["day"]),
@@ -265,14 +256,14 @@ class Data:
                     self.staff["art"].append(person["node"]["name"]["full"])
                 elif person["role"] == "Story":
                     self.staff["story"].append(person["node"]["name"]["full"])
-            if self.mal_id is not None:
+            if mal_id is not None:
                 try:
-                    self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
+                    self.serializations = ", ".join([x["name"] for x in MTJikan().manga(mal_id)["serializations"]])
                 except APIException:
                     pass
         elif details["source"] == "MangaUpdates":
             self.series_title = title
-            self.mangaupdates_id = MU_id
+            self.id = MU_id
             if "Complete" in details["status"]:
                 self.status = "Finished"
             else:
@@ -280,7 +271,7 @@ class Data:
             self.type = details["type"]
             if details["description"]:
                 self.description = cleanDescription(details["description"])
-            self.mangaupdates_url = r"https://www.mangaupdates.com/series.html?id=" + str(MU_id)
+            self.url = r"https://www.mangaupdates.com/series.html?id=" + str(MU_id)
             self.publish_date = details["year"]
             self.genres = details["genres"]
             self.staff["story"] = [x for x in details["authors"]]
@@ -288,14 +279,14 @@ class Data:
             self.serializations = details["serialized"]["name"]
         elif details["source"] == "MAL":
             self.series_title = title
-            self.mal_id = details["mal_id"]
+            self.id = details["mal_id"]
             self.series_title_eng = details["title_english"]
             self.series_title_jap = details["title_japanese"]
             self.status = details["status"]
             self.type = details["type"]
             if details["synopsis"]:
                 self.description = cleanDescription(details["synopsis"])
-            self.mal_url = details["url"]
+            self.url = details["url"]
             date = details["published"]["from"]
             date = date[:date.index('T')]
             self.publish_date = datetime.strptime(date, '%Y-%m-%d').strftime('%Y-%m-%d')
@@ -313,16 +304,16 @@ class Data:
             '''
 
             variables = {
-                'mal_id': self.mal_id
+                'mal_id': self.id
             }
-            asd = MTJikan().manga(self.mal_id)
+            asd = MTJikan().manga(self.id)
             authors1 = asd["authors"]
             authors2 = [x["mal_id"] for x in authors1]
             people = [Jikan().person(x) for x in authors2]
             staff = {}
             for x in people:
                 for y in x["published_manga"]:
-                    if y["manga"]["mal_id"] == self.mal_id:
+                    if y["manga"]["mal_id"] == self.id:
                         staff[x["name"]] = y["position"]
             for person in staff.items():
                 if person[1] == "Story & Art":
@@ -332,16 +323,17 @@ class Data:
                     self.staff["art"].append(person[0])
                 elif person[1] == "Story":
                     self.staff["story"].append(person[0])
-            self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.mal_id)["serializations"]])
+            self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.id)["serializations"]])
         elif details["source"] == "NHentai" or details["source"] == "Fakku":
             self.series_title = details["series_title"]
-            self.mangaupdates_id = None
+            if details["source"] == "NHentai":
+                self.id = details["id"]
             self.status = None
             self.type = details["type"]
             if details["description"]:
                 self.description = cleanDescription(details["description"])
             self.page_count = details["page_count"]
-            self.mal_url = details["mal_url"]
+            self.url = details["mal_url"]
             self.publish_date = None
             self.genres = details["genres"]
             self.staff["story"] = [x for x in details["staff"]["story"]]
@@ -352,9 +344,7 @@ class Data:
     def toDict(self):
         dataDict = {
             "source": self.source,
-            "anilist_id": self.anilist_id,
-            "mal_id": self.mal_id,
-            "mangaupdates_id": self.mangaupdates_id,
+            "id": self.id,
             "series_title": self.series_title,
             "series_title_eng": self.series_title_eng,
             "series_title_jap": self.series_title_jap,
@@ -363,9 +353,7 @@ class Data:
             "type": self.type,
             "description": self.description,
             "page_count": self.page_count,
-            "mal_url": self.mal_url,
-            "anilist_url": self.anilist_url,
-            "mangaupdates_url": self.mangaupdates_url,
+            "url": self.url,
             "publish_date": self.publish_date,
             "genres": self.genres,
             "staff": self.staff,
