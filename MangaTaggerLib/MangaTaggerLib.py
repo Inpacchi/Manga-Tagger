@@ -370,7 +370,7 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                             manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
-            raise MangaNotFoundError
+            raise MangaNotFoundError(manga_title)
         except MangaNotFoundError as mnfe:
             LOG.exception(mnfe, extra=logging_info)
             return mnfe
