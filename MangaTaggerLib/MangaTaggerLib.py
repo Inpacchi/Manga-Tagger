@@ -124,8 +124,18 @@ def process_manga_chapter(file_path: Path, event_id):
                      extra=logging_info)
             CURRENTLY_PENDING_DB_SEARCH.add(directory_name)
 
-    metadata_tagger(directory_name, manga_details[1], manga_details[2], logging_info, new_file_path)
-    LOG.info(f'Processing on "{new_file_path}" has finished.', extra=logging_info)
+    try:
+        success = metadata_tagger(directory_name, manga_details[1], manga_details[2], logging_info, new_file_path)
+        if isinstance(success, MangaNotFoundError):
+            if "No Match" not in os.listdir(manga_library_dir):
+                os.mkdir(Path(manga_library_dir, "No Match"))
+            shutil.move(new_file_path, Path(manga_library_dir, "No Match", new_file_path.absolute().split("\\")[-1]))
+        LOG.info(f'Processing on "{new_file_path}" has finished.', extra=logging_info)
+
+    except Exception as e:
+        if "Exception" not in os.listdir(manga_library_dir):
+            os.mkdir(Path(manga_library_dir, "Exception"))
+        shutil.move(new_file_path, Path(manga_library_dir, "Exception", new_file_path.absolute().split("\\")[-1]))
 
 
 def file_renamer(filename, mangatitle, logging_info):
@@ -360,9 +370,10 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                             manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
+            raise MangaNotFoundError
         except MangaNotFoundError as mnfe:
             LOG.exception(mnfe, extra=logging_info)
-            return
+            return mnfe
         except MangaMatchedException:
             pass
 
