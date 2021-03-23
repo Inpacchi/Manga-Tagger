@@ -12,9 +12,12 @@ import psutil
 from fuzzywuzzy import fuzz
 from pythonjsonlogger import jsonlogger
 
+from MangaTaggerLib import MangaTaggerLib, models
 from MangaTaggerLib.database import Database
 from MangaTaggerLib.task_queue import QueueWorker
 from MangaTaggerLib.api import AniList
+# arg0 = FMD2 directory, arg1 = Directory to watch, arg2 = [preferences], arg3 = [anilist title preferences],
+# arg4 = source -> folder (not done)
 from sys import argv
 
 
@@ -40,6 +43,9 @@ class AppSettings:
             with open(settings_location, 'w+') as settings_json:
                 settings = cls._create_settings()
                 json.dump(settings, settings_json, indent=4)
+
+        MangaTaggerLib.preferences = settings["preferences"]["sourcepref"]
+        models.anilistpreferences = settings["preferences"]["anilistpref"]
 
         cls._initialize_logger(settings['logger'])
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
@@ -157,7 +163,7 @@ class AppSettings:
                 cls._log.info('Download directory has not been set; a file dialog window will be opened to input '
                               'the destination download directory.')
                 Tk().withdraw()
-                if len(argv) == 2:
+                if len(argv) >= 2:
                     download_dir = argv[1]
                 else:
                     download_dir = Path(filedialog.askdirectory(title='Select the folder where you want your manga to be '
@@ -294,10 +300,14 @@ class AppSettings:
     @classmethod
     def _create_settings(cls):
         Tk().withdraw()
-        if len(argv) == 2:
+        if len(argv) >= 1:
             fmd_dir = argv[0]
         else:
             fmd_dir = filedialog.askdirectory(title='Select the folder that Free Manga Downloader is installed in')
+        if len(argv) >= 3:
+            MangaTaggerLib.preferences = [int(x) for x in sys.argv[2][1:-1].split(',')]
+        if len(argv) >= 4:
+            models.anilistpreferences = [str(x[1:-1]) for x in sys.argv[3][1:-1].split(',')]
 
         return {
             "application": {
@@ -360,6 +370,10 @@ class AppSettings:
             "fmd": {
                 "fmd_dir": fmd_dir,
                 "download_dir": None
+            },
+            "preferences": {
+                "sourcepref": MangaTaggerLib.preferences,
+                "anilistpref": models.anilistpreferences
             }
         }
 

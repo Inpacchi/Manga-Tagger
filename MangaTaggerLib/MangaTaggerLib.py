@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 import time
 from datetime import datetime
@@ -15,6 +16,7 @@ from zipfile import ZipFile
 from jikanpy.exceptions import APIException
 
 from MangaTaggerLib._version import __version__
+from googletrans import Translator
 from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates, NH, Fakku
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
 from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequiredError, UnparsableFilenameError, \
@@ -29,19 +31,11 @@ LOG = logging.getLogger('MangaTaggerLib.MangaTaggerLib')
 CURRENTLY_PENDING_DB_SEARCH = set()
 CURRENTLY_PENDING_RENAME = set()
 
+preferences = ["AniList", "MangaUpdates", "MAL", "Fakku", "NHentai"]
+
 
 def main():
     AppSettings.load()
-
-    LOG.info(f'Starting Manga Tagger - Version {__version__}')
-    LOG.debug('RUNNING IN DEBUG MODE')
-
-    if AppSettings.mode_settings is not None:
-        LOG.info('DRY RUN MODE ENABLED')
-        LOG.info(f"MetadataTable Insertion: {AppSettings.mode_settings['database_insert']}")
-        LOG.info(f"Renaming Files: {AppSettings.mode_settings['rename_file']}")
-        LOG.info(f"Writing Comicinfo.xml: {AppSettings.mode_settings['write_comicinfo']}")
-
     QueueWorker.run()
 
 
@@ -62,7 +56,7 @@ def process_manga_chapter(file_path: Path, event_id):
     LOG.debug(f'directory_path: {directory_path}')
     LOG.debug(f'directory_name: {directory_name}')
 
-    manga_details = file_renamer(filename, logging_info)
+    manga_details = file_renamer(filename, directory_name, logging_info)
 
     try:
         new_filename = manga_details[0]
@@ -125,111 +119,66 @@ def process_manga_chapter(file_path: Path, event_id):
                      f'processing.', extra=logging_info)
         else:
             LOG.info(f'"{directory_name}" has not been processed as a searched series nor is it currently pending '
-                     f'a database search. Locking series from being processing until database has been searched...',
+                     f'a database search. Locking series from being processed until database has been searched...',
                      extra=logging_info)
             CURRENTLY_PENDING_DB_SEARCH.add(directory_name)
 
-    metadata_tagger(directory_name, manga_details[1], logging_info, new_file_path)
+    metadata_tagger(directory_name, manga_details[1], manga_details[2], logging_info, new_file_path)
     LOG.info(f'Processing on "{new_file_path}" has finished.', extra=logging_info)
 
 
-def file_renamer(filename, logging_info):
+def file_renamer(filename, mangatitle, logging_info):
     LOG.info(f'Attempting to rename "{filename}"...', extra=logging_info)
 
     # Parse the manga title and chapter name/number (this depends on where the manga is downloaded from)
-    try:
-        if filename.find('-.-') == -1:
-            raise UnparsableFilenameError(filename, '-.-')
-
-        filename = filename.split('-.- ')
-        LOG.info(f'Filename was successfully parsed as {filename}.', extra=logging_info)
-    except UnparsableFilenameError as ufe:
-        LOG.exception(ufe, extra=logging_info)
-        return [f'000.cbz', "000"]
-
-    manga_title: str = filename[0]
-    chapter_title: str = path.splitext(filename[1].lower())[0]
-    LOG.debug(f'manga_title: {manga_title}')
-    LOG.debug(f'chapter: {chapter_title}')
-
-    # If "chapter" is in the chapter substring
-    try:
-        if manga_title.lower() in chapter_title:
-            if compare(manga_title, chapter_title) > .5 and compare(manga_title, chapter_title[:len(manga_title)]) > .8:
-                raise MangaMatchedException()
-
-        if 'oneshot' in path.splitext(filename[1].lower())[0]:
-            LOG.debug(f'manga_type: oneshot')
-            return f'{manga_title} {path.splitext(filename[1])[0]}.cbz', 'oneshot'
-
-        chapter_title = chapter_title.replace(' ', '')
-
-        if 'chapter' in chapter_title:
-            delimiter = 'chapter'
-            delimiter_index = 7
-        elif 'ch.' in chapter_title:
-            delimiter = 'ch.'
-            delimiter_index = 3
-        elif 'ch' in chapter_title:
-            delimiter = 'ch'
-            delimiter_index = 2
-        elif 'act' in chapter_title:
-            delimiter = 'act'
-            delimiter_index = 3
-        else:
-            delimiter = ""
-            delimiter_index = len(chapter_title)
-            #raise UnparsableFilenameError(filename, 'ch/chapter')
+    #try:
+    #    if filename.find('-.-') == -1:
+    #        raise UnparsableFilenameError(filename, '-.-')
+    #
+    #    filename = filename.split('-.- ')
+    #    LOG.info(f'Filename was successfully parsed as {filename}.', extra=logging_info)
     #except UnparsableFilenameError as ufe:
     #    LOG.exception(ufe, extra=logging_info)
-    #    return None
-    except MangaMatchedException:
-        if 'chapter' in chapter_title:
-            chapter_title = chapter_title.replace(' ', '')
-            delimiter = f'{manga_title.lower()}chapter'
-            delimiter_index = len(delimiter) + 1
-        else:
-            delimiter = manga_title.lower()
-            delimiter_index = len(delimiter) + 1
+    #    return [f'000.cbz', "000"]
+    delimiters = ["chapter", "ch.", "ch", "act"]
+    volumedelimiters = ["volume", "vol.", "vol"]
+    filename = filename.replace(".cbz", "").title()
+    if filename.find('-.-') != -1:
+        filename = [x.strip() for x in filename.split('-.-')][1]
+    if any(x in filename.lower() for x in delimiters):
+        for x in delimiters:
+            rgx = re.compile("([0-9. ]|^)" + x + "([0-9. ])")
+            if re.search(rgx, filename.lower()):
+                vol_num = None
+                text = re.split(x, filename, maxsplit=1, flags=re.IGNORECASE)
+                if any(y in text[0].lower() for y in volumedelimiters):
+                    for y in volumedelimiters:
+                        if y in text[0].lower():
+                            volume = re.split(y, text[0], flags=re.IGNORECASE)[1]
+                            vol_num = re.search(r'[\d.]+', volume).group(0)
+                            break
+                chaptertext = text[1].strip()
+                if re.search(r'[\d.]+', chaptertext) is None:
+                    break
+                ch_num = re.search(r'[\d.]+', chaptertext).group(0)
+                ch_num = str(int(ch_num))
+                chaptertitle = re.split(r'[\d.]+', chaptertext, maxsplit=1)[1].strip()
+                if not chaptertitle:
+                    return [f"Chapter {ch_num}.cbz", ch_num, None]
+                if vol_num:
+                    return [f"Vol. {vol_num} Chapter {ch_num}.cbz", ch_num, chaptertitle]
+                else:
+                    return [f"Chapter {ch_num}.cbz", ch_num, chaptertitle]
+    elif 'oneshot' in filename:
+        LOG.debug(f'manga_type: oneshot')
+        return [f'{mangatitle}.cbz', 'oneshot', mangatitle]
 
-    LOG.debug(f'delimiter: {delimiter}')
-    LOG.debug(f'delimiter_index: {delimiter_index}')
 
-    i = chapter_title.index(delimiter) + delimiter_index
-    LOG.debug(f'Iterator i: {i}')
-    LOG.debug(f'Length: {len(chapter_title)}')
-
-    chapter_number = ''
-    while i < len(chapter_title):
-        substring = chapter_title[i]
-        LOG.debug(f'substring: {substring}')
-
-        if substring.isdigit() or substring == '.':
-            chapter_number += chapter_title[i]
-            i += 1
-
-            LOG.debug(f'chapter_number: {chapter_number}')
-            LOG.debug(f'Iterator i: {i}')
-        else:
-            break
-    if chapter_number == "":
-        chapter_number = "0"
-
-    if chapter_number.find('.') == -1:
-        chapter_number = chapter_number.zfill(3)
-    else:
-        chapter_number = chapter_number.zfill(5)
-
-    filename = f'{chapter_number}.cbz'
-
-    LOG.debug(f'chapter_number: {chapter_number}')
-
-    logging_info['chapter_number'] = chapter_number
     logging_info['new_filename'] = filename
 
     LOG.info(f'File will be renamed to "{filename}".', extra=logging_info)
 
-    return filename, chapter_number
+    return ["000.cbz", "0", mangatitle]
 
 
 def rename_action(current_file_path: Path, new_file_path: Path, manga_title, chapter_number, logging_info):
@@ -321,7 +270,7 @@ def compare_versions(old_filename: str, new_filename: str):
         return False
 
 
-def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_path=None):
+def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logging_info, manga_file_path=None):
     manga_search = None
     db_exists = False
 
@@ -353,7 +302,6 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
             "NHentai": NH(),
             "Fakku": Fakku()}
         # sources["Kitsu"] = Kitsu
-        preferences = ["AniList", "MangaUpdates", "MAL", "Fakku", "NHentai"]
         results = {}
         metadata = None
         try:
@@ -431,6 +379,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
 
     if AppSettings.mode_settings is None or ('write_comicinfo' in AppSettings.mode_settings.keys()
                                              and AppSettings.mode_settings['write_comicinfo']):
+        manga_metadata.title = manga_chapter_title
         comicinfo_xml = construct_comicinfo_xml(manga_metadata, manga_chapter_number, logging_info)
         reconstruct_manga_chapter(comicinfo_xml[0], manga_file_path, comicinfo_xml[1], logging_info)
 
@@ -521,12 +470,21 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     application_tag = Comment('Generated by Manga Tagger, an Endless Galaxy Studios project')
     comicinfo.append(application_tag)
 
+    title = SubElement(comicinfo, 'Title')
+    title.text = metadata.title
+
     series = SubElement(comicinfo, 'Series')
     series.text = metadata.series_title
 
-    if metadata.series_title_eng is not None and compare(metadata.series_title, metadata.series_title_eng) != 1:
-        alt_series = SubElement(comicinfo, 'AlternateSeries')
-        alt_series.text = metadata.series_title_eng
+    if metadata.series_title_eng and compare(metadata.series_title, metadata.series_title_eng) != 1:
+        series_title_lang = Translator().detect(metadata.series_title).lang
+        if series_title_lang == "ja":
+            alt_series = SubElement(comicinfo, 'AlternateSeries')
+            alt_series.text = metadata.series_title_eng
+        elif series_title_lang == "en":
+            if metadata.series_title_jap:
+                alt_series = SubElement(comicinfo, 'AlternateSeries')
+                alt_series.text = metadata.series_title_jap
 
     number = SubElement(comicinfo, 'Number')
     number.text = f'{chapter_number}'
@@ -534,7 +492,7 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     summary = SubElement(comicinfo, 'Summary')
     summary.text = metadata.description
 
-    if metadata.publish_date is not None:
+    if metadata.publish_date:
         publish_date = datetime.strptime(metadata.publish_date, '%Y-%m-%d').date()
         year = SubElement(comicinfo, 'Year')
         year.text = f'{publish_date.year}'
@@ -578,9 +536,9 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
             genre.text = f'{mg}'
 
     web = SubElement(comicinfo, 'Web')
-    if metadata.anilist_url is not None:
+    if metadata.anilist_url:
         web.text = metadata.anilist_url
-    elif metadata.mal_url is not None:
+    elif metadata.mal_url:
         web.text = metadata.mal_url
     else:
         web.text = "None"
@@ -621,7 +579,7 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, isHentai,logging_i
         if not os.path.isdir(dirh):
             os.mkdir(dirh)
         shutil.move(manga_file_path, Path(str(manga_file_path.absolute()).replace("Manga", "Hentai")))
-        os.remove(dir)
+        os.rmdir(dir)
 
     LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
 

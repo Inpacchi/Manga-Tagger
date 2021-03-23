@@ -8,7 +8,9 @@ from pytz import timezone
 from MangaTaggerLib.api import MTJikan
 from MangaTaggerLib.errors import MetadataNotCompleteError
 from MangaTaggerLib.utils import AppSettings, compare
+from googletrans import Translator
 
+anilistpreferences = ["english", "romaji", "native"]
 
 class Metadata:
     _log = None
@@ -21,6 +23,7 @@ class Metadata:
         Metadata._log = logging.getLogger(self.fully_qualified_class_name())
 
         self.search_value = manga_title
+        self.title = None
         Metadata._log.info(f'Creating Metadata model for series "{manga_title}"...', extra=logging_info)
 
         if details:  # If details are grabbed from Jikan and Anilist APIs
@@ -36,7 +39,7 @@ class Metadata:
 
     def _construct_api_metadata(self, details, logging_info):
         self.source = details["source"]
-        self._id = tryKey(details, "mal_id")
+        #self._id = tryKey(details, "mal_id")
         self.series_title = tryKey(details, "series_title")
 
         if tryKey(details, "series_title_eng") is None:
@@ -224,18 +227,29 @@ class Data:
             self.anilist_id = details["id"]
             self.mal_id = details["idMal"]
             self.series_title_eng = details["title"]["english"]
+            if self.series_title_eng is None or self.series_title_eng == "null":
+                for x in details["synonyms"]:
+                    if Translator().detect(x).lang == "en":
+                        self.series_title_eng = x
+                        break
             self.series_title_jap = details["title"]["romaji"]
+            pref = {"english": self.series_title_eng, "romaji": details["title"]["romaji"], "native": details["title"]["native"]}
+            for x in anilistpreferences:
+                if pref[x] is not None and pref[x] != "null":
+                    self.series_title = pref[x]
+                    break
             self.status = details["status"]
             self.type = details["type"]
-            raw = details["description"]
-            cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
-            cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
-            cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
-            toDelete = ["<i>", "</i>", "<b>", "</b>"]
-            for x in toDelete:
-                cleaned = cleaned.replace(x, "")
-            cleaned = cleaned.replace("<br>", "\n")
-            self.description = cleaned
+            if details["description"]:
+                raw = details["description"]
+                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
+                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
+                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
+                toDelete = ["<i>", "</i>", "<b>", "</b>"]
+                for x in toDelete:
+                    cleaned = cleaned.replace(x, "")
+                cleaned = cleaned.replace("<br>", "\n")
+                self.description = cleaned
             if self.mal_id is not None:
                 self.mal_url = r"myanimelist.net/manga/" + str(self.mal_id)
             self.anilist_url = details["siteUrl"]
@@ -266,7 +280,16 @@ class Data:
             else:
                 self.status = "Publishing"
             self.type = details["type"]
-            self.description = details["description"]
+            if details["description"]:
+                raw = details["description"]
+                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
+                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
+                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
+                toDelete = ["<i>", "</i>", "<b>", "</b>"]
+                for x in toDelete:
+                    cleaned = cleaned.replace(x, "")
+                cleaned = cleaned.replace("<br>", "\n")
+                self.description = cleaned
             self.mangaupdates_url = r"https://www.mangaupdates.com/series.html?id=" + str(MU_id)
             self.publish_date = details["year"]
             self.genres = details["genres"]
@@ -280,7 +303,16 @@ class Data:
             self.series_title_jap = details["title_japanese"]
             self.status = details["status"]
             self.type = details["type"]
-            self.description = details["synopsis"]
+            if details["synopsis"]:
+                raw = details["synopsis"]
+                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
+                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
+                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
+                toDelete = ["<i>", "</i>", "<b>", "</b>"]
+                for x in toDelete:
+                    cleaned = cleaned.replace(x, "")
+                cleaned = cleaned.replace("<br>", "\n")
+                self.description = cleaned
             self.mal_url = details["url"]
             date = details["published"]["from"]
             date = date[:date.index('T')]
@@ -324,7 +356,16 @@ class Data:
             self.mangaupdates_id = None
             self.status = None
             self.type = details["type"]
-            self.description = details["description"]
+            if details["description"]:
+                raw = details["description"]
+                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
+                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
+                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
+                toDelete = ["<i>", "</i>", "<b>", "</b>"]
+                for x in toDelete:
+                    cleaned = cleaned.replace(x, "")
+                cleaned = cleaned.replace("<br>", "\n")
+                self.description = cleaned
             self.mal_url = details["mal_url"]
             self.publish_date = None
             self.genres = details["genres"]
