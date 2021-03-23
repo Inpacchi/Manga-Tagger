@@ -241,15 +241,7 @@ class Data:
             self.status = details["status"]
             self.type = details["type"]
             if details["description"]:
-                raw = details["description"]
-                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
-                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
-                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
-                toDelete = ["<i>", "</i>", "<b>", "</b>"]
-                for x in toDelete:
-                    cleaned = cleaned.replace(x, "")
-                cleaned = cleaned.replace("<br>", "\n")
-                self.description = cleaned
+                self.description = cleanDescription(details["description"])
             if self.mal_id is not None:
                 self.mal_url = r"myanimelist.net/manga/" + str(self.mal_id)
             self.anilist_url = details["siteUrl"]
@@ -281,15 +273,7 @@ class Data:
                 self.status = "Publishing"
             self.type = details["type"]
             if details["description"]:
-                raw = details["description"]
-                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
-                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
-                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
-                toDelete = ["<i>", "</i>", "<b>", "</b>"]
-                for x in toDelete:
-                    cleaned = cleaned.replace(x, "")
-                cleaned = cleaned.replace("<br>", "\n")
-                self.description = cleaned
+                self.description = cleanDescription(details["description"])
             self.mangaupdates_url = r"https://www.mangaupdates.com/series.html?id=" + str(MU_id)
             self.publish_date = details["year"]
             self.genres = details["genres"]
@@ -304,15 +288,7 @@ class Data:
             self.status = details["status"]
             self.type = details["type"]
             if details["synopsis"]:
-                raw = details["synopsis"]
-                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
-                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
-                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
-                toDelete = ["<i>", "</i>", "<b>", "</b>"]
-                for x in toDelete:
-                    cleaned = cleaned.replace(x, "")
-                cleaned = cleaned.replace("<br>", "\n")
-                self.description = cleaned
+                self.description = cleanDescription(details["synopsis"])
             self.mal_url = details["url"]
             date = details["published"]["from"]
             date = date[:date.index('T')]
@@ -357,15 +333,7 @@ class Data:
             self.status = None
             self.type = details["type"]
             if details["description"]:
-                raw = details["description"]
-                cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
-                cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
-                cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
-                toDelete = ["<i>", "</i>", "<b>", "</b>"]
-                for x in toDelete:
-                    cleaned = cleaned.replace(x, "")
-                cleaned = cleaned.replace("<br>", "\n")
-                self.description = cleaned
+                self.description = cleanDescription(details["description"])
             self.mal_url = details["mal_url"]
             self.publish_date = None
             self.genres = details["genres"]
@@ -402,3 +370,14 @@ def tryKey(dct, x):
         return dct[x]
     except KeyError:
         return None
+    
+def cleanDescription(x):
+    raw = x
+    cleaned = re.sub(r'& ?(ld|rd)quo ?[;\]]', '\"', raw)
+    cleaned = re.sub(r'& ?(ls|rs)quo ?;', '\'', cleaned)
+    cleaned = re.sub(r'& ?ndash ?;', '-', cleaned)
+    toDelete = ["<i>", "</i>", "<b>", "</b>"]
+    for x in toDelete:
+        cleaned = cleaned.replace(x, "")
+    cleaned = cleaned.replace("<br>", "\n")
+    return cleaned
