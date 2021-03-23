@@ -185,7 +185,7 @@ class ProcFilesTable(Database):
             "chapter_number": chapter,
             "old_filename": old_file_path.name,
             "new_filename": new_file_path.name,
-            "process_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
+            "process_date": datetime.now().strftime('%Y-%m-%d @ %I:%M:%S %p')
         }
 
         cls._log.debug(f'Record: {record}')

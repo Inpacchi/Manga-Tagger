@@ -23,6 +23,7 @@ from MangaTaggerLib.errors import FileAlreadyProcessedError, FileUpdateNotRequir
     MangaNotFoundError, MangaMatchedException
 from MangaTaggerLib.models import Metadata, Data
 from MangaTaggerLib.task_queue import QueueWorker
+from MangaTaggerLib.thumbnail import thumb
 from MangaTaggerLib.utils import AppSettings, compare
 
 # Global Variable Declaration
@@ -565,6 +566,7 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
 
 
 def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, isHentai,logging_info):
+    folderdir = "\\".join(str(manga_file_path.absolute()).split("\\")[:-1])
     try:
         with ZipFile(manga_file_path, 'a') as zipfile:
             zipfile.writestr('ComicInfo.xml', comicinfo_xml)
@@ -574,12 +576,13 @@ def reconstruct_manga_chapter(comicinfo_xml, manga_file_path, isHentai,logging_i
                     extra=logging_info)
         return
     if isHentai:
-        dir = "\\".join(str(manga_file_path.absolute()).split("\\")[:-1])
-        dirh = Path(dir.replace("Manga", "Hentai"))
+        dirh = Path(folderdir.replace("Manga", "Hentai"))
         if not os.path.isdir(dirh):
             os.mkdir(dirh)
         shutil.move(manga_file_path, Path(str(manga_file_path.absolute()).replace("Manga", "Hentai")))
-        os.rmdir(dir)
+        os.rmdir(Path(folderdir))
+        folderdir = dirh
+    thumb(folderdir)
 
     LOG.info(f'ComicInfo.xml has been created and appended to "{manga_file_path}".', extra=logging_info)
 
