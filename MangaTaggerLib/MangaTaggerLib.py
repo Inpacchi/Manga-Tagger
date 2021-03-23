@@ -129,13 +129,13 @@ def process_manga_chapter(file_path: Path, event_id):
         if isinstance(success, MangaNotFoundError):
             if "No Match" not in os.listdir(manga_library_dir):
                 os.mkdir(Path(manga_library_dir, "No Match"))
-            shutil.move(new_file_path, Path(manga_library_dir, "No Match", new_file_path.absolute().split("\\")[-1]))
+            shutil.move(new_file_path, Path(manga_library_dir, "No Match", new_file_path.absolute().__str__().split("\\")[-1]))
         LOG.info(f'Processing on "{new_file_path}" has finished.', extra=logging_info)
 
     except Exception as e:
         if "Exception" not in os.listdir(manga_library_dir):
             os.mkdir(Path(manga_library_dir, "Exception"))
-        shutil.move(new_file_path, Path(manga_library_dir, "Exception", new_file_path.absolute().split("\\")[-1]))
+        shutil.move(new_file_path, Path(manga_library_dir, "Exception", new_file_path.absolute().__str__().split("\\")[-1]))
 
 
 def file_renamer(filename, mangatitle, logging_info):
