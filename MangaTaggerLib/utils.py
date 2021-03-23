@@ -182,6 +182,10 @@ class AppSettings:
             cls._log.info('Setting "Generate Manga Folder" should be enabled with "Manga Custom Rename" '
                           f'configured as "%MANGA%"; this configuration has been applied')
 
+        if settings_json['saveto']['RemoveMangaNameFromChapter'] is False:
+            settings_json['saveto']['RemoveMangaNameFromChapter'] = True
+            changes_made = True
+
         # ChapterCustomRename MUST FOLLOW this format to be properly parsed
         if settings_json['saveto']['ChapterCustomRename'].find('-.-') == -1 \
                 or settings_json['saveto']['ChapterCustomRename'] != '-.- %CHAPTER%':
