@@ -85,10 +85,14 @@ def thumb(dir):
                 with zipfile.ZipFile(os.path.join(dir, file)) as z:
                     imagefile = next(file for file in z.namelist() if (file.endswith(".png") or file.endswith(".jpg") or file.endswith(".jpeg") or file.endswith(".webp")))
                     imagefile = z.extract(imagefile)
-                    image = Image.open(imagefile).convert("RGBA")
-                    new_image = Image.new ("RGBA", image.size, "WHITE")
-                    new_image.paste(image, (0, 0), image)
-                    new_image = new_image.convert('RGB')
+                    image = Image.open(imagefile)
+                    if image.mode is "RGBA":
+                        new_image = Image.new("RGBA", image.size, "WHITE")
+                        new_image.paste(image, (0, 0), image)
+                        new_image = new_image.convert('RGB')
+                    else:
+                        new_image = Image.new("RGB", image.size)
+                        new_image.paste(image, (0, 0))
                     width = new_image.size[0]
                     height = new_image.size[1]
 
