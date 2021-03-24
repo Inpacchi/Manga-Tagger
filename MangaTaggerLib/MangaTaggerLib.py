@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 import re
@@ -8,6 +9,7 @@ from os import path
 from pathlib import Path
 
 import pymanga
+from fuzzywuzzy import fuzz
 from requests.exceptions import ConnectionError
 from xml.etree.ElementTree import SubElement, Element, Comment, tostring
 from xml.dom.minidom import parseString
@@ -129,7 +131,7 @@ def process_manga_chapter(file_path: Path, event_id, download_dir):
             CURRENTLY_PENDING_DB_SEARCH.add(directory_name)
 
     try:
-        success = metadata_tagger(directory_name, manga_details[1], manga_details[2], logging_info, new_file_path)
+        success = metadata_tagger(directory_name, manga_details[1], manga_details[2], logging_info, new_file_path, file_path)
         if isinstance(success, MangaNotFoundError):
             if "No Match" not in os.listdir(manga_library_dir):
                 os.mkdir(Path(manga_library_dir, "No Match"))
@@ -142,66 +144,62 @@ def process_manga_chapter(file_path: Path, event_id, download_dir):
         shutil.move(new_file_path, Path(manga_library_dir, "Exception", new_file_path.absolute().__str__().split("\\")[-1]))
 
 
-def file_renamer(filename, mangatitle, logging_info):
+def file_renamer(filename, manga_title, logging_info):
     LOG.info(f'Attempting to rename "{filename}"...', extra=logging_info)
 
-    # Parse the manga title and chapter name/number (this depends on where the manga is downloaded from)
-    #try:
-    #    if filename.find('-.-') == -1:
-    #        raise UnparsableFilenameError(filename, '-.-')
-    #
-    #    filename = filename.split('-.- ')
-    #    LOG.info(f'Filename was successfully parsed as {filename}.', extra=logging_info)
-    #except UnparsableFilenameError as ufe:
-    #    LOG.exception(ufe, extra=logging_info)
-    #    return [f'000.cbz', "000"]
     delimiters = ["chapter", "ch.", "ch", "act"]
     volumedelimiters = ["volume", "vol.", "vol"]
     filename = filename.replace(".cbz", "").title()
     if filename.find('-.-') != -1:
         split_filename = [x.strip() for x in filename.split('-.-')][1]
-        filename = split_filename[1]
-        if mangatitle is None:
-            mangatitle = split_filename[0]
-    if any(x in filename.lower() for x in delimiters):
-        for x in delimiters:
-            rgx = re.compile("([0-9. ]|^)" + x + "([0-9. ])")
-            if re.search(rgx, filename.lower()):
-                vol_num = None
-                text = re.split(x, filename, maxsplit=1, flags=re.IGNORECASE)
-                if any(y in text[0].lower() for y in volumedelimiters):
-                    for y in volumedelimiters:
-                        if y in text[0].lower():
-                            volume = re.split(y, text[0], flags=re.IGNORECASE)[1]
-                            vol_num = re.search(r'[\d.]+', volume).group(0)
-                            break
-                chaptertext = text[1].strip()
-                if re.search(r'[\d.]+', chaptertext) is None:
-                    continue
-                ch_num = re.search(r'[\d.]+', chaptertext).group(0)
-                ch_num = ch_num.lstrip("0") or "0"
-                chaptertitle = re.split(r'[\d.]+', chaptertext, maxsplit=1)[1].strip()
-                if not chaptertitle:
-                    return [f"Chapter {ch_num}.cbz", ch_num, mangatitle]
-                if vol_num:
-                    return [f"Vol. {vol_num} Chapter {ch_num}.cbz", ch_num, chaptertitle]
-                else:
-                    return [f"Chapter {ch_num}.cbz", ch_num, chaptertitle]
+        LOG.debug(f'Chapter text for {filename}.cbz is assumed to be {split_filename}')
+        if split_filename:
+            filename = split_filename[1]
+        else:
+            filename = ""
+        if manga_title is None:
+            LOG.debug(f'File was in download directory, manga name assumed to be {split_filename[0]}')
+            manga_title = split_filename[0]
+    for x in delimiters:
+        if re.search("([ ]|^)" + x + "([0-9. ])", filename.lower(), flags=re.IGNORECASE):
+            LOG.debug(f'Chapter delimiter {x} was found in string {filename}')
+            vol_num = None
+            text = re.split(x, filename, maxsplit=1, flags=re.IGNORECASE)
+            for y in volumedelimiters:
+                if re.search("([0-9. ]|^)" + y + "([0-9. ])", text[0], flags=re.IGNORECASE):
+                    LOG.debug(f'Volume delimiter {y} was found in string {text[0]}')
+                    volume = re.split(y, text[0], flags=re.IGNORECASE)[1]
+                    vol_num = re.search(r'[\d.]+', volume).group(0)
+                    LOG.debug(f'Volume #: {vol_num}')
+                    break
+            chapter_text = text[1].strip()
+            LOG.debug(f'Chapter # + title should be: {chapter_text}')
+            if re.search(r'[\d.]+', chapter_text) is None:
+                LOG.debug(f'Chapter # was not found. Checking for another chapter delimiter')
+                continue
+            ch_num = re.search(r'[\d.]+', chapter_text).group(0)
+            ch_num = ch_num.lstrip("0") or "0"
+            LOG.debug(f'Chapter #: {ch_num}')
+            chapter_title = re.split(r'[\d.]+', chapter_text, maxsplit=1)[1].strip()
+            LOG.debug(f'Chapter title: {chapter_title}')
+            if not chapter_title:
+                return [f"Chapter {ch_num}.cbz", ch_num, manga_title]
+            if vol_num:
+                return [f"Vol. {vol_num} Chapter {ch_num}.cbz", ch_num, chapter_title]
+            else:
+                return [f"Chapter {ch_num}.cbz", ch_num, chapter_title]
     if 'oneshot' in filename.lower():
         LOG.debug(f'manga_type: Oneshot')
-        return [f'{mangatitle}.cbz', '0', mangatitle]
+        return [f'{manga_title}.cbz', '0', manga_title]
 
     if filename.strip().isdigit():
         return [f'{filename}.cbz', f'{filename}', mangatitle]
-
-    if mangatitle is None:
-        mangatitle = filename
 
     logging_info['new_filename'] = filename
 
     LOG.info(f'File will be renamed to "{filename}".', extra=logging_info)
 
-    return ["000.cbz", "0", mangatitle]
+    return ["000.cbz", "0", manga_title]
 
 
 def rename_action(current_file_path: Path, new_file_path: Path, manga_title, chapter_number, logging_info):
@@ -293,7 +291,7 @@ def compare_versions(old_filename: str, new_filename: str):
         return False
 
 
-def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logging_info, manga_file_path=None):
+def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logging_info, manga_file_path=None, old_file_path=None):
     manga_search = None
     db_exists = False
 
@@ -377,11 +375,29 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                             metadata = Data(manga, manga_title)
                             raise MangaMatchedException("Found a match")
                     elif source == "NHentai":
-                        if compare(manga_title, result["title"]) >= 0.8:
+                        filenametoolong = False
+                        if len(old_file_path.absolute().__str__()) == 259:
+                            if fuzz.partial_ratio(manga_title, result["title"]) == 100:
+                                filenametoolong = True
+                        if compare(manga_title, result["title"]) >= 0.8 or filenametoolong:
                             manga = sources["NHentai"].manga(result["id"], result["title"])
                             manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
+            formats = [(r"(\w)([A-Z])", r"\1 \2"), (r"[ ][,]", ","), (r"[.]", ""), (r"([^ ]+)[']([^ ]+)", ""), (r"([^ ]+)[.]([^ ]+)", "")]
+            for x in range(len(formats)):
+                combinations = itertools.combinations(formats, x+1)
+                for y in combinations:
+                    for z in y:
+                        formatted = manga_title
+                        formatted = re.sub(z[0],z[1], formatted)
+                        formattedresults = sources["NHentai"].search(formatted)
+                        for formattedresult in formattedresults:
+                            if compare(manga_title, formattedresult["title"]) >= 0.8:
+                                manga = sources["NHentai"].manga(formattedresult["id"], formattedresult["title"])
+                                manga["source"] = "NHentai"
+                                metadata = Data(manga, manga_title, formattedresult["id"])
+                                raise MangaMatchedException("Found a match")
             raise MangaNotFoundError(manga_title)
         except MangaNotFoundError as mnfe:
             LOG.exception(mnfe, extra=logging_info)
