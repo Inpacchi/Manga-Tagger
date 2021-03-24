@@ -193,7 +193,11 @@ def file_renamer(filename, manga_title, logging_info):
         return [f'{manga_title}.cbz', '0', manga_title]
 
     if filename.strip().isdigit():
-        return [f'{filename}.cbz', f'{filename}', mangatitle]
+        LOG.debug(f'File name is a number')
+        return [f'{filename}.cbz', f'{filename}', manga_title]
+
+    if manga_title is None:
+        manga_title = filename
 
     logging_info['new_filename'] = filename
 
