@@ -1,6 +1,7 @@
 import atexit
 import json
 import logging
+import os
 import subprocess
 import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
@@ -387,6 +388,10 @@ class AppSettings:
             for manga_chapter in directory.glob('*.cbz'):
                 if manga_chapter.name.strip('.cbz') not in QueueWorker.task_list.keys():
                     QueueWorker.add_to_task_queue(manga_chapter)
+        for chapter in [x for x in os.listdir(QueueWorker.download_dir.iterdir()) if x.endswith(".cbz")]:
+            if chapter.name.strip('.cbz') not in QueueWorker.task_list.keys():
+                QueueWorker.add_to_task_queue(chapter)
+
 
 
 def compare(s1, s2):

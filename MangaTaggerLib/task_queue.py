@@ -185,7 +185,7 @@ class QueueWorker:
                     cls._log.exception(fnfe)
 
                 try:
-                    MangaTaggerLib.process_manga_chapter(path, uuid.uuid1())
+                    MangaTaggerLib.process_manga_chapter(path, uuid.uuid1(), cls.download_dir)
                 except Exception as e:
                     cls._log.exception(e)
                     cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for '

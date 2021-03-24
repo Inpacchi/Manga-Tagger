@@ -15,7 +15,6 @@ from zipfile import ZipFile
 
 from jikanpy.exceptions import APIException
 
-from MangaTaggerLib import utils
 from MangaTaggerLib._version import __version__
 from googletrans import Translator
 from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates, NH, Fakku
@@ -41,7 +40,7 @@ def main():
     QueueWorker.run()
 
 
-def process_manga_chapter(file_path: Path, event_id):
+def process_manga_chapter(file_path: Path, event_id, download_dir):
     filename = file_path.name
     directory_path = file_path.parent
     directory_name = file_path.parent.name
@@ -58,8 +57,9 @@ def process_manga_chapter(file_path: Path, event_id):
     LOG.debug(f'directory_path: {directory_path}')
     LOG.debug(f'directory_name: {directory_name}')
 
-    if directory_path == utils.download_dir:
+    if directory_path == download_dir:
         manga_details = file_renamer(filename, None, logging_info)
+        directory_name = manga_details[2]
     else:
         manga_details = file_renamer(filename, directory_name, logging_info)
 
@@ -193,9 +193,6 @@ def file_renamer(filename, mangatitle, logging_info):
 
     if filename.strip().isdigit():
         return [f'{filename}.cbz', f'{filename}', mangatitle]
-
-    if mangatitle is None:
-        mangatitle = filename
 
     logging_info['new_filename'] = filename
 
