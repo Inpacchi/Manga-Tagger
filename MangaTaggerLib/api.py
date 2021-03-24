@@ -69,8 +69,8 @@ class MTJikan(Jikan):
         search_results = super(MTJikan, self).manga(id, extension, page)
         self.session.close()
         search_results["source"] = "MAL"
-        search_results["id"] = id
-        search_results["url"] = r"https://myanimelist.net/manga/" + id
+        search_results["id"] = str(id)
+        search_results["url"] = r"https://myanimelist.net/manga/" + str(id)
         return search_results
 
 
@@ -329,7 +329,7 @@ class MangaUpdates:
         dct = pymanga.series(id)
         dct["source"] = "MangaUpdates"
         dct["id"] = id
-        dct["url"] = r"https://www.mangaupdates.com/series.html?id=" + id
+        dct["url"] = r"https://www.mangaupdates.com/series.html?id=" + str(id)
         return dct
 
 

@@ -171,7 +171,7 @@ def file_renamer(filename, mangatitle, logging_info):
                             break
                 chaptertext = text[1].strip()
                 if re.search(r'[\d.]+', chaptertext) is None:
-                    break
+                    continue
                 ch_num = re.search(r'[\d.]+', chaptertext).group(0)
                 ch_num = ch_num.lstrip("0") or "0"
                 chaptertitle = re.split(r'[\d.]+', chaptertext, maxsplit=1)[1].strip()
@@ -181,10 +181,12 @@ def file_renamer(filename, mangatitle, logging_info):
                     return [f"Vol. {vol_num} Chapter {ch_num}.cbz", ch_num, chaptertitle]
                 else:
                     return [f"Chapter {ch_num}.cbz", ch_num, chaptertitle]
-    elif 'oneshot' in filename.lower():
-        LOG.debug(f'manga_type: oneshot')
-        return [f'{mangatitle}.cbz', 'oneshot', mangatitle]
+    if 'oneshot' in filename.lower():
+        LOG.debug(f'manga_type: Oneshot')
+        return [f'{mangatitle}.cbz', 'Oneshot', mangatitle]
 
+    if all(x.isDigit for x in filename):
+        return [f'{filename}.cbz', f'{filename}', mangatitle]
 
     logging_info['new_filename'] = filename
 
@@ -335,12 +337,14 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                         for title in titles:
                             if compare(manga_title, title) >= 0.9:
                                 manga = sources["AniList"].manga(result["id"], logging_info)
+                                manga["source"] = "AniList"
                                 metadata = Data(manga, manga_title)
                                 raise MangaMatchedException("Found a match")
                     elif source == "MangaUpdates":
                         # Construct MangaUpdates XML
                         if compare(manga_title, result['title']) >= 0.9:
                             manga = sources["MangaUpdates"].series(result["id"])
+                            manga["source"] = "MangaUpdates"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
                     elif source == "MAL":
@@ -354,16 +358,19 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                                     'all rate limiting limits...')
                                 time.sleep(60)
                                 manga = MTJikan().manga(result["mal_id"])
+                            manga["source"] = "MAL"
                             metadata = Data(manga, manga_title, result["mal_id"])
                             raise MangaMatchedException("Found a match")
                     elif source == "Fakku":
                         if result["success"]:
                             manga = sources["Fakku"].manga(result["url"])
+                            manga["source"] = "Fakku"
                             metadata = Data(manga, manga_title)
                             raise MangaMatchedException("Found a match")
                     elif source == "NHentai":
                         if compare(manga_title, result["title"]) >= 0.8:
                             manga = sources["NHentai"].manga(result["id"], result["title"])
+                            manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
             raise MangaNotFoundError(manga_title)
@@ -392,82 +399,6 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
         reconstruct_manga_chapter(comicinfo_xml[0], manga_file_path, comicinfo_xml[1], logging_info)
 
     return manga_metadata
-
-
-def construct_jikan_titles(jikan_details):
-    jikan_titles = {
-        'title': jikan_details['title']
-    }
-
-    if jikan_details['title_english'] is not None:
-        jikan_titles['title_english'] = jikan_details['title_english']
-
-    if jikan_details['title_japanese'] is not None:
-        jikan_titles['title_japanese'] = jikan_details['title_japanese']
-
-    if not jikan_details['title_synonyms']:
-        i = 1
-        for title in jikan_details['title_synonyms']:
-            jikan_titles[f'title_{i}'] = title
-            i += 1
-
-    return jikan_titles
-
-
-def construct_anilist_titles(anilist_details):
-    anilist_titles = {}
-
-    if anilist_details['romaji'] is not None:
-        anilist_titles['romaji'] = anilist_details['romaji']
-
-    if anilist_details['english'] is not None:
-        anilist_titles['english'] = anilist_details['english']
-
-    if anilist_details['native'] is not None:
-        anilist_titles['native'] = anilist_details['native']
-
-    return anilist_titles
-
-
-def compare_titles(manga_title: str, jikan_titles: dict, anilist_titles: dict, logging_info):
-    comparison_values = []
-
-    for jikan_key in jikan_titles.keys():
-        comparison_values.append(compare(manga_title, jikan_titles[jikan_key]))
-
-    for anilist_key in anilist_titles.keys():
-        comparison_values.append(compare(manga_title, anilist_titles[anilist_key]))
-
-    logging_info['pre_comparison_values'] = comparison_values
-    LOG.debug(f'pre_comparison_values: {comparison_values}', extra=logging_info)
-
-    if not any(value > .9 for value in comparison_values):
-        return None
-
-    comparison_values = []
-
-    for jikan_key in jikan_titles.keys():
-        for anilist_key in anilist_titles.keys():
-            comparison_values.append(compare(jikan_titles[jikan_key], anilist_titles[anilist_key]))
-
-    logging_info['post_comparison_values'] = comparison_values
-    LOG.debug(f'post_comparison_values: {comparison_values}', extra=logging_info)
-    return comparison_values
-
-
-def compare_authors(jikan_authors, anilist_authors, logging_info):
-    for author_1 in jikan_authors:
-        if ',' in author_1['name']:
-            full_name_split = author_1['name'].split(', ')
-            author_1_name = f'{full_name_split[1]} {full_name_split[0]}'
-        else:
-            author_1_name = author_1['name']
-
-        for author_2 in anilist_authors:
-            if author_1_name == author_2['node']['name']['full']:
-                return True
-    return False
-
 
 def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     LOG.info(f'Constructing comicinfo object for "{metadata.series_title}", chapter {chapter_number}...',
@@ -535,7 +466,10 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     letterer.text = tryIter(metadata.staff['art'])
 
     cover_artist = SubElement(comicinfo, 'CoverArtist')
-    cover_artist.text = tryIter(metadata.staff['art'])
+    if tryIter(metadata.staff['cover']):
+        cover_artist.text = tryIter(metadata.staff['cover'])
+    else:
+        cover_artist.text = tryIter(metadata.staff['art'])
 
     publisher = SubElement(comicinfo, 'Publisher')
     publisher.text = tryIter(metadata.serializations)

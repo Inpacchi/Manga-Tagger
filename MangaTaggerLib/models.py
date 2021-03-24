@@ -62,17 +62,11 @@ class Metadata:
         self.genres = tryKey(details, "genres")
         staff = tryKey(details, "staff")
         if staff is not None:
-            self.staff = {"story": tryKey(staff, "story"), "art": tryKey(staff, "art")}
+            self.staff = {"story": tryKey(staff, "story"), "art": tryKey(staff, "art"), "cover": tryKey(staff, "cover")}
         else:
             self.staff = {}
         self.serializations = tryKey(details, "serializations")
 
-        # self._construct_publish_date(details['published']['from'])
-        # self._parse_genres(details['genres'], logging_info)
-        # self._parse_staff(details['staff']['edges'], details['authors'], logging_info)
-        # self._parse_serializations(details['serializations'], logging_info)
-
-        # self.scrape_date = datetime.now().date().strftime('%Y-%m-%d %I:%M %p')
         self.scrape_date = timezone(AppSettings.timezone).localize(datetime.now()).strftime('%Y-%m-%d %I:%M %p %Z')
 
     def _construct_database_metadata(self, details):
@@ -211,11 +205,12 @@ class Data:
     url = None
     publish_date = None
     genres = []
-    staff = {"story": [], "art": []}
+    staff = {"story": [], "art": [], "cover": []}
     serializations = {}
 
     def __init__(self, details, title, MU_id=None):
         if details["source"] == "AniList":
+            source = details["source"]
             if details["format"] == "ONE_SHOT":
                 for x in details["relations"]["edges"]:
                     if x["relationType"] == "ALTERNATIVE":
@@ -256,6 +251,8 @@ class Data:
                     self.staff["art"].append(person["node"]["name"]["full"])
                 elif person["role"] == "Story":
                     self.staff["story"].append(person["node"]["name"]["full"])
+                elif person["role"] == "Cover Designer":
+                    self.staff["cover"].append(person["node"]["name"]["full"])
             if mal_id is not None:
                 try:
                     self.serializations = ", ".join([x["name"] for x in MTJikan().manga(mal_id)["serializations"]])
@@ -323,6 +320,8 @@ class Data:
                     self.staff["art"].append(person[0])
                 elif person[1] == "Story":
                     self.staff["story"].append(person[0])
+                elif person[1] == "Cover Designer":
+                    self.staff["cover"].append(person[0])
             self.serializations = ", ".join([x["name"] for x in MTJikan().manga(self.id)["serializations"]])
         elif details["source"] == "NHentai" or details["source"] == "Fakku":
             self.series_title = details["series_title"]
@@ -344,7 +343,7 @@ class Data:
     def toDict(self):
         dataDict = {
             "source": self.source,
-            "id": self.id,
+            "id": str(self.id),
             "series_title": self.series_title,
             "series_title_eng": self.series_title_eng,
             "series_title_jap": self.series_title_jap,
