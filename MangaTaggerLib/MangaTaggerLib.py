@@ -15,6 +15,7 @@ from zipfile import ZipFile
 
 from jikanpy.exceptions import APIException
 
+from MangaTaggerLib import utils
 from MangaTaggerLib._version import __version__
 from googletrans import Translator
 from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates, NH, Fakku
@@ -43,7 +44,6 @@ def main():
 def process_manga_chapter(file_path: Path, event_id):
     filename = file_path.name
     directory_path = file_path.parent
-    #directory_name = str(file_path.parent.name).replace(r"\'", r"'")
     directory_name = file_path.parent.name
 
     logging_info = {
@@ -58,7 +58,10 @@ def process_manga_chapter(file_path: Path, event_id):
     LOG.debug(f'directory_path: {directory_path}')
     LOG.debug(f'directory_name: {directory_name}')
 
-    manga_details = file_renamer(filename, directory_name, logging_info)
+    if directory_path == utils.download_dir:
+        manga_details = file_renamer(filename, None, logging_info)
+    else:
+        manga_details = file_renamer(filename, directory_name, logging_info)
 
     try:
         new_filename = manga_details[0]
@@ -156,7 +159,10 @@ def file_renamer(filename, mangatitle, logging_info):
     volumedelimiters = ["volume", "vol.", "vol"]
     filename = filename.replace(".cbz", "").title()
     if filename.find('-.-') != -1:
-        filename = [x.strip() for x in filename.split('-.-')][1]
+        split_filename = [x.strip() for x in filename.split('-.-')][1]
+        filename = split_filename[1]
+        if mangatitle is None:
+            mangatitle = split_filename[0]
     if any(x in filename.lower() for x in delimiters):
         for x in delimiters:
             rgx = re.compile("([0-9. ]|^)" + x + "([0-9. ])")
@@ -183,10 +189,13 @@ def file_renamer(filename, mangatitle, logging_info):
                     return [f"Chapter {ch_num}.cbz", ch_num, chaptertitle]
     if 'oneshot' in filename.lower():
         LOG.debug(f'manga_type: Oneshot')
-        return [f'{mangatitle}.cbz', 'Oneshot', mangatitle]
+        return [f'{mangatitle}.cbz', '0', mangatitle]
 
-    if all(x.isDigit for x in filename):
+    if filename.strip().isdigit():
         return [f'{filename}.cbz', f'{filename}', mangatitle]
+
+    if mangatitle is None:
+        mangatitle = filename
 
     logging_info['new_filename'] = filename
 

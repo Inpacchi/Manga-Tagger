@@ -332,7 +332,7 @@ class Data:
             if details["description"]:
                 self.description = cleanDescription(details["description"])
             self.page_count = details["page_count"]
-            self.url = details["mal_url"]
+            self.url = details["url"]
             self.publish_date = None
             self.genres = details["genres"]
             self.staff["story"] = [x for x in details["staff"]["story"]]
