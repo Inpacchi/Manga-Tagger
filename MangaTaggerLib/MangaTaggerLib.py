@@ -130,17 +130,23 @@ def process_manga_chapter(file_path: Path, event_id, download_dir):
             CURRENTLY_PENDING_DB_SEARCH.add(directory_name)
 
     try:
-        success = metadata_tagger(directory_name, manga_details[1], manga_details[2], logging_info, new_file_path, file_path)
-        if isinstance(success, MangaNotFoundError):
-            if "No Match" not in os.listdir(manga_library_dir):
-                os.mkdir(Path(manga_library_dir, "No Match"))
-            shutil.move(new_file_path, Path(manga_library_dir, "No Match", new_file_path.absolute().__str__().split("\\")[-1]))
-        LOG.info(f'Processing on "{new_file_path}" has finished.', extra=logging_info)
+        metadata_tagger(directory_name, manga_details[1], manga_details[2], logging_info, new_file_path, file_path)
 
-    except Exception as e:
-        if "Exception" not in os.listdir(manga_library_dir):
-            os.mkdir(Path(manga_library_dir, "Exception"))
-        shutil.move(new_file_path, Path(manga_library_dir, "Exception", new_file_path.absolute().__str__().split("\\")[-1]))
+    except MangaNotFoundError:
+        LOG.info(f'Processing on "{new_file_path}" has failed.', extra=logging_info)
+        error_folder_path = Path(manga_library_dir, "No Match")
+        if not os.path.isdir(error_folder_path):
+            os.mkdir(error_folder_path)
+        shutil.move(new_file_path, Path(error_folder_path, new_file_path.parts[-1]))
+
+    except Exception:
+        LOG.info(f'Processing on "{new_file_path}" has failed.', extra=logging_info)
+        error_folder_path = Path(manga_library_dir, "Exception")
+        if not os.path.isdir(error_folder_path):
+            os.mkdir(error_folder_path)
+        shutil.move(new_file_path, Path(error_folder_path, new_file_path.parts[-1]))
+
+    LOG.info(f'Processing on "{new_file_path}" has finished.', extra=logging_info)
 
 
 def file_renamer(filename, manga_title, logging_info):
@@ -404,7 +410,7 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
             raise MangaNotFoundError(manga_title)
         except MangaNotFoundError as mnfe:
             LOG.exception(mnfe, extra=logging_info)
-            return mnfe
+            raise
         except MangaMatchedException:
             pass
 
