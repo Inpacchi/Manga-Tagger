@@ -1,4 +1,6 @@
 import logging
+import os
+import shutil
 import time
 from datetime import datetime
 from os import path
@@ -125,7 +127,14 @@ def process_manga_chapter(file_path: Path, event_id):
                      extra=logging_info)
             CURRENTLY_PENDING_DB_SEARCH.add(directory_name)
 
-    metadata_tagger(directory_name, manga_details[1], logging_info, new_file_path)
+    try:
+        metadata_tagger(directory_name, manga_details[1], logging_info, new_file_path)
+    except Exception:
+        # Could change manga_library_dir to AppSettings.library_dir
+        error_folder_path = Path(manga_library_dir, "No Metadata")
+        if not os.path.isdir(error_folder_path):
+            os.mkdir(error_folder_path)
+        shutil.move(new_file_path, Path(error_folder_path, new_file_path.parts[-1]))
     LOG.info(f'Processing on "{new_file_path}" has finished.', extra=logging_info)
 
 
@@ -360,7 +369,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         manga_found = False
         try:
             for result in manga_search['results']:
-                if result['type'].lower() == 'manga':
+                if result['type'].lower() == 'manga' or result['type'].lower() == 'one-shot':
                     manga_id = result['mal_id']
                     anilist_titles = construct_anilist_titles(
                         AniList.search_for_manga_title_by_mal_id(manga_id, logging_info)['title'])
@@ -408,7 +417,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                 raise MangaNotFoundError(manga_title)
         except MangaNotFoundError as mnfe:
             LOG.exception(mnfe, extra=logging_info)
-            return
+            raise
 
         LOG.info(f'ID for "{manga_title}" found as "{manga_id}".', extra=logging_info)
 
