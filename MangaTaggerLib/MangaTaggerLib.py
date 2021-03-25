@@ -17,7 +17,6 @@ from zipfile import ZipFile
 
 from jikanpy.exceptions import APIException
 
-from MangaTaggerLib._version import __version__
 from googletrans import Translator
 from MangaTaggerLib.api import MTJikan, AniList, Kitsu, MangaUpdates, NH, Fakku
 from MangaTaggerLib.database import MetadataTable, ProcFilesTable, ProcSeriesTable
@@ -388,7 +387,7 @@ def metadata_tagger(manga_title, manga_chapter_number, manga_chapter_title, logg
                             manga["source"] = "NHentai"
                             metadata = Data(manga, manga_title, result["id"])
                             raise MangaMatchedException("Found a match")
-            formats = [(r"(\w)([A-Z])", r"\1 \2"), (r"[ ][,]", ","), (r"[.]", ""), (r"([^ ]+)[']([^ ]+)", ""), (r"([^ ]+)[.]([^ ]+)", "")]
+            formats = [(r"(\w)([A-Z])", r"\1 \2"), (r"[ ][,]", ","), (r"[.]", ""), (r"([^ ]+)[']([^ ]+)", ""), (r"([^ ]+)[.]([^ ]+)", ""), (r"[ ][-]([^ ]+)", r" \1")]
             for x in range(len(formats)):
                 combinations = itertools.combinations(formats, x+1)
                 for y in combinations:
@@ -445,7 +444,8 @@ def construct_comicinfo_xml(metadata, chapter_number, logging_info):
     series.text = metadata.series_title
 
     alt_series = SubElement(comicinfo, 'AlternateSeries')
-    series_title_lang = Translator().detect(metadata.series_title).lang
+    if metadata.series_title and metadata.series_title.strip():
+        series_title_lang = Translator().detect(metadata.series_title).lang
     if metadata.series_title_eng and series_title_lang == "ja":
         alt_series.text = metadata.series_title_eng
     elif metadata.series_title_jap and series_title_lang == "en":
