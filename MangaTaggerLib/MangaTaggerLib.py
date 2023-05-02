@@ -160,7 +160,10 @@ def file_renamer(filename, logging_info):
 
         chapter_title = chapter_title.replace(' ', '')
 
-        if 'chapter' in chapter_title:
+        if 'vol' in chapter_title:
+            delimiter = 'vol'
+            delimiter_index = 3
+        elif 'chapter' in chapter_title:
             delimiter = 'chapter'
             delimiter_index = 7
         elif 'ch.' in chapter_title:
@@ -194,6 +197,8 @@ def file_renamer(filename, logging_info):
     LOG.debug(f'Length: {len(chapter_title)}')
 
     chapter_number = ''
+    chapter_title = chapter_title.replace(' ', '')
+    LOG.debug(f'chapter_title: {chapter_title}')
     while i < len(chapter_title):
         substring = chapter_title[i]
         LOG.debug(f'substring: {substring}')
@@ -359,7 +364,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
     else:
         manga_found = False
         try:
-            for result in manga_search['results']:
+            for result in manga_search['data']:
                 if result['type'].lower() == 'manga':
                     manga_id = result['mal_id']
                     anilist_titles = construct_anilist_titles(
@@ -376,7 +381,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                         time.sleep(60)
                         jikan_details = MTJikan().manga(manga_id)
 
-                    jikan_titles = construct_jikan_titles(jikan_details)
+                    jikan_titles = construct_jikan_titles(jikan_details['data'])
                     logging_info['jikan_titles'] = jikan_titles
 
                     LOG.info(f'Comparing titles found for "{manga_title}"...', extra=logging_info)
@@ -389,9 +394,9 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
                         manga_found = True
                         break
                     elif any(value > .5 for value in comparison_values):
-                        jikan_details = MTJikan().manga(result['mal_id'])
+                        jikan_details = MTJikan().manga(manga_id)
                         jikan_authors = jikan_details['authors']
-                        anilist_authors = AniList.search_staff_by_mal_id(result['mal_id'],
+                        anilist_authors = AniList.search_staff_by_mal_id(manga_id,
                                                                          logging_info)['staff']['edges']
 
                         logging_info['jikan_authors'] = jikan_authors
@@ -416,7 +421,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, manga_file_
         LOG.debug(f'jikan_details: {jikan_details}')
         LOG.debug(f'anilist_details: {anilist_details}')
 
-        manga_metadata = Metadata(manga_title, logging_info, jikan_details, anilist_details)
+        manga_metadata = Metadata(manga_title, logging_info, jikan_details['data'], anilist_details)
         logging_info['metadata'] = manga_metadata.__dict__
 
         if AppSettings.mode_settings is None or ('database_insert' in AppSettings.mode_settings.keys()

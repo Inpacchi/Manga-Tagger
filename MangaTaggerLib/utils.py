@@ -115,7 +115,10 @@ class AppSettings:
         QueueWorker.load_task_queue()
 
         # Scan download directory for downloads not already in database upon loading
-        cls._scan_download_dir()
+        try:
+            cls._scan_download_dir()
+        except AttributeError:
+            cls._log.info(f'No files in download directory.')
 
         # Initialize API
         AniList.initialize()
@@ -357,7 +360,12 @@ class AppSettings:
 
     @classmethod
     def _scan_download_dir(cls):
-        for directory in QueueWorker.download_dir.iterdir():
+        cls._log.debug(f'download_dir: {QueueWorker.download_dir}')
+        if isinstance(QueueWorker.download_dir, Path):
+            _path = QueueWorker.download_dir
+        else:
+            _path = Path(QueueWorker.download_dir)
+        for directory in _path.iterdir():
             for manga_chapter in directory.glob('*.cbz'):
                 if manga_chapter.name.strip('.cbz') not in QueueWorker.task_list.keys():
                     QueueWorker.add_to_task_queue(manga_chapter)

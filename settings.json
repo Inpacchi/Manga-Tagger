@@ -1,9 +1,9 @@
 {
 	"application": {
 		"debug_mode": true,
-		"timezone": "America/New_York",
+		"timezone": "Europe/London",
 		"library": {
-			"dir": "C:\\Library",
+			"dir": "D:\\fmd\\library",
 			"is_network_path": false
 		},
 		"dry_run": {
@@ -27,12 +27,12 @@
 		"server_selection_timeout_ms": 1
 	},
 	"logger": {
-		"logging_level": "info",
+		"logging_level": "debug",
 		"log_dir": "logs",
 		"max_size": 10485760,
 		"backup_count": 5,
 		"console": {
-			"enabled": false,
+			"enabled": true,
 			"log_format": "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
 		},
 		"file": {
@@ -57,7 +57,7 @@
 		}
 	},
 	"fmd": {
-		"fmd_dir": "C:\\Free Manga Downloader",
-		"download_dir": null
+		"fmd_dir": "D:\\fmd",
+		"download_dir": "D:\\fmd\\downloads"
 	}
 }

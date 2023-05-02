@@ -84,10 +84,11 @@ class QueueWorker:
         cls._running = True
 
         for i in range(cls.threads):
-            if not cls._debug_mode:
-                worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
-            else:
-                worker = Thread(target=cls.dummy_process, name=f'MTT-{i}', daemon=True)
+            worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
+            #if not cls._debug_mode:
+            #    worker = Thread(target=cls.process, name=f'MTT-{i}', daemon=True)
+            #else:
+            #    worker = Thread(target=cls.dummy_process, name=f'Dummy MTT-{i}', daemon=True)
             cls._log.debug(f'Worker thread {worker.name} has been initialized')
             cls._worker_list.append(worker)
 
@@ -151,6 +152,7 @@ class QueueWorker:
         cls._log.info(f'Watching "{cls.download_dir}" for new downloads')
 
         while cls._running:
+            QueueWorker.process()
             time.sleep(1)
 
     @classmethod
@@ -160,7 +162,7 @@ class QueueWorker:
     @classmethod
     def process(cls):
         while cls._running:
-            if not cls._queue.empty():
+            if cls._queue.qsize() != 0:
                 event = cls._queue.get()
 
                 if event.event_type in ('created', 'existing'):

@@ -1,7 +1,8 @@
 pymongo==3.11.0
 watchdog==0.10.4
 numpy==1.19.3
-jikanpy==4.2.2
+jikanpy-v4==1.0.2
 requests==2.24.0
 python_json_logger==2.0.1
 pytz==2020.1
+psutil==5.9.5
