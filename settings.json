@@ -3,7 +3,7 @@
 		"debug_mode": true,
 		"timezone": "Europe/London",
 		"library": {
-			"dir": "D:\\fmd\\library",
+			"dir": "\\mnt\\d\\fmd\\library",
 			"is_network_path": false
 		},
 		"dry_run": {
@@ -18,7 +18,7 @@
 		}
 	},
 	"database": {
-		"database_name": "manga_tagger",
+		"database_name": "manga_tagger.db",
 		"host_address": "localhost",
 		"port": 27017,
 		"username": "manga_tagger",
@@ -57,7 +57,7 @@
 		}
 	},
 	"fmd": {
-		"fmd_dir": "D:\\fmd",
-		"download_dir": "D:\\fmd\\downloads"
+		"fmd_dir": "/mnt/d/fmd",
+		"download_dir": "/home/sanchoblaze/projects/python/Manga-Tagger/downloads"
 	}
 }

@@ -11,7 +11,7 @@ import numpy
 import psutil
 from pythonjsonlogger import jsonlogger
 
-from MangaTaggerLib.database import Database
+from MangaTaggerLib.database import Database, FilesTable
 from MangaTaggerLib.task_queue import QueueWorker
 from MangaTaggerLib.api import AniList
 
@@ -58,7 +58,7 @@ class AppSettings:
         Database.print_debug_settings()
 
         # Free Manga Downloader Configuration
-        cls._initialize_fmd_settings(settings['fmd']['fmd_dir'], settings['fmd']['download_dir'])
+        cls._initialize_fmd_settings(settings['fmd']['fmd_dir'].replace('\\', '/'), settings['fmd']['download_dir'].replace('\\', '/'))
 
         # Set Application Timezone
         cls.timezone = settings['application']['timezone']
@@ -94,7 +94,7 @@ class AppSettings:
 
         # Manga Library Configuration
         if settings['application']['library']['dir'] is not None:
-            cls.library_dir = settings['application']['library']['dir']
+            cls.library_dir = settings['application']['library']['dir'].replace('\\', '/')
             cls._log.debug(f'Library Directory: {cls.library_dir}')
 
             cls.is_network_path = settings['application']['library']['is_network_path']
@@ -108,11 +108,14 @@ class AppSettings:
             sys.exit(1)
 
         # Load necessary database tables
-        Database.load_database_tables()
+        # Database.load_database_tables()
 
         # Initialize QueueWorker and load task queue
         QueueWorker.initialize()
         QueueWorker.load_task_queue()
+
+        # Scan the database for files that haven't had metadata added.
+        cls._scan_untagged_files()
 
         # Scan download directory for downloads not already in database upon loading
         try:
@@ -132,6 +135,9 @@ class AppSettings:
         cls._log.info('Now setting Free Manga Downloader configuration settings...')
 
         fmd_settings_path = Path(fmd_dir, 'userdata', 'settings.json')
+
+        cls._log.debug(f'FMD Settings Path: {fmd_settings_path}')
+
 
         # If FMD is running, stop it
         for process in psutil.process_iter():
@@ -281,9 +287,6 @@ class AppSettings:
         # Stop worker threads
         QueueWorker.exit()
 
-        # Save necessary database tables
-        Database.save_database_tables()
-
         # Close MongoDB connection
         Database.close_connection()
 
@@ -369,6 +372,13 @@ class AppSettings:
             for manga_chapter in directory.glob('*.cbz'):
                 if manga_chapter.name.strip('.cbz') not in QueueWorker.task_list.keys():
                     QueueWorker.add_to_task_queue(manga_chapter)
+
+    @classmethod
+    def _scan_untagged_files(cls):
+        results = FilesTable.untagged()
+        if results is not None:
+            for result in results:
+                QueueWorker.add_to_metadata_task_queue(result['file_id'])
 
 
 def compare(s1, s2):

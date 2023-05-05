@@ -18,11 +18,12 @@ class MTJikan(Jikan):
         self.calls_minute = 0
         self.last_api_call = datetime.now()
 
-    # Rate Limit: 2 requests/second
+    # Rate Limit: 1 requests/second
     def _check_rate_seconds(self):
+        time.sleep(5)
         last_api_call_delta = (datetime.now() - self.last_api_call).total_seconds()
 
-        if self.calls_second > 2 and last_api_call_delta < 1:
+        if self.calls_second > 1 > last_api_call_delta:
             time.sleep(1)
         elif last_api_call_delta > 1:
             self.calls_second = 0
@@ -32,7 +33,7 @@ class MTJikan(Jikan):
         last_api_call_delta = (datetime.now() - self.last_api_call).total_seconds()
 
         if self.calls_minute > 30 and last_api_call_delta < 60:
-            time.sleep(61 - last_api_call_delta)
+            time.sleep(61)
         elif last_api_call_delta > 60:
             self.calls_minute = 0
 
@@ -49,6 +50,7 @@ class MTJikan(Jikan):
         self.calls_second += 1
         self.calls_minute += 1
         self.last_api_call = datetime.now()
+
         search_results = super(MTJikan, self).search(search_type, query, page, parameters)
         self.session.close()
         return search_results
@@ -76,12 +78,14 @@ class AniList:
 
     @classmethod
     def _post(cls, query, variables, logging_info):
+        time.sleep(5)
         try:
             response = requests.post('https://graphql.anilist.co', json={'query': query, 'variables': variables})
+            if "errors" in response.json():
+                raise Exception(f"Error: {response.json()['errors']}")
         except Exception as e:
-            cls._log.exception(e, extra=logging_info)
-            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
-                             extra=logging_info)
+            cls._log.exception(e)
+            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.')
             return None
 
         cls._log.debug(f'Query: {query}')
@@ -92,6 +96,7 @@ class AniList:
 
     @classmethod
     def search_staff_by_mal_id(cls, mal_id, logging_info):
+        time.sleep(5)
         query = '''
         query search_staff_by_mal_id ($mal_id: Int) {
           Media (idMal: $mal_id, type: MANGA) {
@@ -122,6 +127,7 @@ class AniList:
 
     @classmethod
     def search_for_manga_title_by_mal_id(cls, mal_id, logging_info):
+        time.sleep(5)
         query = '''
         query search_manga_by_mal_id ($mal_id: Int) {
           Media (idMal: $mal_id, type: MANGA) {

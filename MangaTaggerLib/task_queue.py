@@ -19,6 +19,7 @@ class QueueEventOrigin(Enum):
     WATCHDOG = 1
     FROM_DB = 2
     SCAN = 3
+    METADATA = 4
 
 
 class QueueEvent:
@@ -40,12 +41,17 @@ class QueueEvent:
         elif origin == QueueEventOrigin.SCAN:
             self.event_type = 'existing'
             self.src_path = event
+        elif origin == QueueEventOrigin.METADATA:
+            self.event_type = 'metadata'
+            self.file_id = event
 
     def __str__(self):
         if self.event_type in ('created', 'existing'):
             return f'File {self.event_type} event at {self.src_path.absolute()}'
         elif self.event_type == 'modified':
             return f'File {self.event_type} event at {self.dest_path.absolute()}'
+        elif self.event_type == 'metadata':
+            return f'File {self.event_type} event for file id: {self.file_id}'
 
     def dictionary(self):
         ret_dict = {
@@ -123,6 +129,12 @@ class QueueWorker:
         cls._queue.put(event)
 
     @classmethod
+    def add_to_metadata_task_queue(cls, file_id):
+        event = QueueEvent(file_id, QueueEventOrigin.METADATA)
+        cls._log.info(f'{event} has been added to the task queue')
+        cls._queue.put(event)
+
+    @classmethod
     def exit(cls):
         # Stop worker threads from picking new items from the queue in process()
         cls._log.info('Stopping processing...')
@@ -165,33 +177,38 @@ class QueueWorker:
             if cls._queue.qsize() != 0:
                 event = cls._queue.get()
 
-                if event.event_type in ('created', 'existing'):
-                    cls._log.info(f'Pulling "file {event.event_type}" event from the queue for "{event.src_path}"')
-                    path = Path(event.src_path)
-                elif event.event_type == 'moved':
-                    cls._log.info(f'Pulling "file {event.event_type}" event from the queue for "{event.dest_path}"')
-                    path = Path(event.dest_path)
+                if event.event_type == 'metadata':
+                    cls._log.info(f'Pulling "file {event.event_type}" event from the queue for file id: "{event.file_id}"')
+                    MangaTaggerLib.tag_manga_chapter(event.file_id)
                 else:
-                    cls._log.error('Event was passed, but Manga Tagger does not know how to handle it. Please open an '
-                                   'issue for further investigation.')
-                    cls._queue.task_done()
-                    return
+                    if event.event_type in ('created', 'existing'):
+                        cls._log.info(f'Pulling "file {event.event_type}" event from the queue for "{event.src_path}"')
+                        path = Path(event.src_path)
+                    elif event.event_type == 'moved':
+                        cls._log.info(f'Pulling "file {event.event_type}" event from the queue for "{event.dest_path}"')
+                        path = Path(event.dest_path)
+                    else:
+                        cls._log.error('Event was passed, but Manga Tagger does not know how to handle it. Please '
+                                       'open an'
+                                       'issue for further investigation.')
+                        cls._queue.task_done()
+                        return
 
-                current_size = -1
-                try:
-                    destination_size = path.stat().st_size
-                    while current_size != destination_size:
-                        current_size = destination_size
-                        time.sleep(1)
-                except FileNotFoundError as fnfe:
-                    cls._log.exception(fnfe)
+                    current_size = -1
+                    try:
+                        destination_size = path.stat().st_size
+                        while current_size != destination_size:
+                            current_size = destination_size
+                            time.sleep(1)
+                    except FileNotFoundError as fnfe:
+                        cls._log.exception(fnfe)
 
-                try:
-                    MangaTaggerLib.process_manga_chapter(path, uuid.uuid1())
-                except Exception as e:
-                    cls._log.exception(e)
-                    cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for '
-                                     'investigation.')
+                    try:
+                        MangaTaggerLib.process_manga_chapter(path, uuid.uuid1())
+                    except Exception as e:
+                        cls._log.exception(e)
+                        cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for '
+                                         'investigation.')
 
                 cls._queue.task_done()
 

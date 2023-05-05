@@ -1,269 +1,399 @@
+import json
 import logging
+import shutil
+import sqlite3
 import sys
+import threading
 from datetime import datetime
 from pathlib import Path
 from queue import Queue
+from sqlite3 import Error
 
-from bson.errors import InvalidDocument
-from pymongo import MongoClient
-from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
+# Define the lock globally
+lock = threading.Lock()
 
 
 class Database:
     database_name = None
-    host_address = None
-    port = None
-    username = None
-    password = None
-    auth_source = None
-    server_selection_timeout_ms = None
+
+    sql_create_manga_table = """CREATE TABLE IF NOT EXISTS manga (
+                                       manga_id integer PRIMARY KEY,
+                                       mal_id integer,
+                                       series_title text,
+                                       series_title_eng text,
+                                       series_title_jap text,
+                                       status text,
+                                       type text,
+                                       description text,
+                                       mal_url text,
+                                       anilist_url text,
+                                       genres text,
+                                       staff text,
+                                       serializations text,
+                                       scrape_date text,
+                                       publish_date text                                    
+                                   );"""
+
+    sql_create_files_table = """CREATE TABLE IF NOT EXISTS files (
+                                    file_id integer PRIMARY KEY,
+                                    chapter_number text,
+                                    new_filename text,
+                                    old_filename text,
+                                    series_title text,
+                                    processed_date text,
+                                    tagged_date text,
+                                    manga_id integer,
+                                    FOREIGN KEY (manga_id) REFERENCES manga (manga_id)
+                                );"""
+
+    sql_create_task_queue_table = """CREATE TABLE IF NOT EXISTS task_queue (
+                                         task_id integer PRIMARY KEY,
+                                         event_type text,
+                                         manga_chapter text,
+                                         src_path text
+                                     );"""
 
     _client = None
     _database = None
+    _table = None
     _log = None
+
+    def dict_factory(cursor, row):
+        d = {}
+        for idx, col in enumerate(cursor.description):
+            d[col[0]] = row[idx]
+        return d
+
+    @classmethod
+    def get_sqlite3_thread_safety(cls):
+
+        # Map value from SQLite's THREADSAFE to Python's DBAPI 2.0
+        # threadsafety attribute.
+        sqlite_threadsafe2python_dbapi = {0: 0, 2: 1, 1: 3}
+        conn = sqlite3.connect(cls.database_name)
+        threadsafety = conn.execute(
+            """
+    select * from pragma_compile_options
+    where compile_options like 'THREADSAFE=%'
+    """
+        ).fetchone()[0]
+        conn.close()
+
+        threadsafety_value = int(threadsafety.split("=")[1])
+
+        return sqlite_threadsafe2python_dbapi[threadsafety_value]
 
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
 
-        if cls.auth_source is None:
-            cls._client = MongoClient(cls.host_address,
-                                      cls.port,
-                                      username=cls.username,
-                                      password=cls.password,
-                                      serverSelectionTimeoutMS=cls.server_selection_timeout_ms)
-        else:
-            cls._client = MongoClient(cls.host_address,
-                                      cls.port,
-                                      username=cls.username,
-                                      password=cls.password,
-                                      authSource=cls.auth_source,
-                                      serverSelectionTimeoutMS=cls.server_selection_timeout_ms)
-
         try:
             cls._log.info('Establishing database connection...')
-            cls._client.is_mongos
-        except ServerSelectionTimeoutError as sste:
-            cls._log.exception(sste)
+
+            if cls.get_sqlite3_thread_safety() == 3:
+                check_same_thread = False
+            else:
+                check_same_thread = True
+
+            cls._client = sqlite3.connect(cls.database_name, check_same_thread=check_same_thread)
+            cls._client.row_factory = cls.dict_factory
+            cls._database = cls._client.cursor()
+            try:
+                lock.acquire(True)
+                cls._database.execute(cls.sql_create_manga_table)
+            finally:
+                lock.release()
+
+            try:
+                lock.acquire(True)
+                cls._database.execute(cls.sql_create_files_table)
+            finally:
+                lock.release()
+
+            try:
+                lock.acquire(True)
+                cls._database.execute(cls.sql_create_task_queue_table)
+            finally:
+                lock.release()
+
+        except Error as e:
+            cls._log.exception(e)
             cls._log.critical('Manga Tagger cannot run without a database connection. Please check the'
                               'configuration in settings.json and try again.')
             sys.exit(1)
+        # finally:
+        #     if cls._client:
+        #         cls._client.close()
 
-        cls._database = cls._client[cls.database_name]
+        # cls._database = cls._client[cls.database_name]
 
-        MetadataTable.initialize()
-        ProcFilesTable.initialize()
-        ProcSeriesTable.initialize()
+        MangaTable.initialize()
+        FilesTable.initialize()
         TaskQueueTable.initialize()
 
         cls._log.info('Database connection established!')
         cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
-    def load_database_tables(cls):
-        ProcSeriesTable.load()
+    def print_debug_settings(cls):
+        cls._log.debug(f'Database Name: {Database.database_name}')
 
     @classmethod
-    def save_database_tables(cls):
-        ProcSeriesTable.save()
+    def delete_all(cls, table, logging_info):
+        try:
+            cls._log.info(f'Attempting to delete all records in table {table}...')
+            try:
+                lock.acquire(True)
+                cls._database.execute(f'DELETE FROM {table}')
+            finally:
+                lock.release()
+        except Exception as e:
+            cls._log.exception(e)
+            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.')
+            return
+
+        cls._log.info('Deletion was successful!')
 
     @classmethod
     def close_connection(cls):
-        cls._log.info('Closing database connection...')
         cls._client.close()
 
-    @classmethod
-    def print_debug_settings(cls):
-        cls._log.debug(f'Database Name: {Database.database_name}')
-        cls._log.debug(f'Host Address: {Database.host_address}')
-        cls._log.debug(f'Port: {Database.port}')
-        cls._log.debug(f'Username: {Database.username}')
-        cls._log.debug(f'Password: {Database.password}')
-        cls._log.debug(f'Authentication Source: {Database.auth_source}')
-        cls._log.debug(f'Server Selection Timeout (ms): {Database.server_selection_timeout_ms}')
 
-    @classmethod
-    def insert(cls, data, logging_info=None):
-        try:
-            cls._log.info('Attempting to insert record into the database...', extra=logging_info)
-
-            if type(data) is dict:
-                cls._database.insert_one(data)
-            else:
-                cls._database.insert_one(data.__dict__)
-        except (DuplicateKeyError, InvalidDocument) as e:
-            cls._log.exception(e, extra=logging_info)
-            return
-        except Exception as e:
-            cls._log.exception(e, extra=logging_info)
-            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
-                             extra=logging_info)
-            return
-
-        cls._log.info('Insertion was successful!', extra=logging_info)
-
-    @classmethod
-    def update(cls, search_filter, data, logging_info):
-        try:
-            cls._log.info('Attempting to update record in the database...', extra=logging_info)
-            cls._database.update_one(search_filter, data)
-        except Exception as e:
-            cls._log.exception(e, extra=logging_info)
-            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
-                             extra=logging_info)
-            return
-
-        cls._log.info('Update was successful!', extra=logging_info)
-
-    @classmethod
-    def delete_all(cls, logging_info):
-        try:
-            cls._log.info('Attempting to delete all records in the database...', extra=logging_info)
-            cls._database.delete_many({})
-        except Exception as e:
-            cls._log.exception(e, extra=logging_info)
-            cls._log.warning('Manga Tagger is unfamiliar with this error. Please log an issue for investigation.',
-                             extra=logging_info)
-            return
-
-        cls._log.info('Deletion was successful!', extra=logging_info)
-
-
-class MetadataTable(Database):
+class MangaTable(Database):
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
-        cls._database = super()._database['manga_metadata']
+        cls._table = 'manga'
         cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
-    def search_by_search_value(cls, manga_title):
-        cls._log.debug(f'Searching manga_metadata cls by key "search_value" using value "{manga_title}"')
-        return cls._database.find_one({
-            'search_value': manga_title
-        })
+    def search(cls, manga_title):
+        cls._log.debug(f'Searching manage for "{manga_title}"')
+        try:
+            lock.acquire(True)
+            results = cls._database.execute(
+                'SELECT * FROM manga WHERE series_title_eng = ? OR series_title = ?',
+                (manga_title, manga_title,))
+            result = results.fetchone()
+        finally:
+            lock.release()
+        return result
 
     @classmethod
-    def search_by_series_title_eng(cls, manga_title):
-        cls._log.debug(
-            f'Searching manga_metadata cls by key "series_title_eng" using value "{manga_title}"')
-        return cls._database.find_one({
-            'series_title_eng': manga_title
-        })
+    def insert(cls, data, logging_info=None):
+        params = (
+            data.mal_id,
+            data.series_title,
+            data.series_title_eng,
+            data.series_title_jap,
+            data.status,
+            data.type,
+            data.description,
+            data.mal_url,
+            data.anilist_url,
+            json.dumps(data.genres),
+            json.dumps(data.staff),
+            json.dumps(data.serializations),
+            data.publish_date,
+            data.scrape_date
+        )
 
-    @classmethod
-    def search_by_series_title(cls, manga_title):
-        cls._log.debug(f'Searching manga_metadata cls by key "series_title" using value "{manga_title}"')
-        return cls._database.find_one({
-            'series_title': manga_title
-        })
+        cls._log.info('Inserting record into the database...')
+        try:
+            lock.acquire(True)
+            cls._database.execute(
+                'INSERT INTO manga (mal_id, series_title, series_title_eng, series_title_jap, status, type, '
+                "description, mal_url, anilist_url, genres, staff, serializations, publish_date, scrape_date) VALUES "
+                "(?, ?, ?, strftime('%Y-%m-%d', ?), ?, strftime('%Y-%m-%d %H:%M:%S[+-]HH:MM', ?), ?, ?, ?, ?, ?, ?, ?,"
+                " ?)", params)
+            cls._client.commit()
+
+            manga_id = cls._database.lastrowid
+        finally:
+            lock.release()
+        cls._log.info(f'Insertion was successful! Manga ID: {manga_id}')
+
+        return manga_id
 
 
-class ProcFilesTable(Database):
+# class ProcSeriesTable(Database):
+#     processed_series = set()
+#
+#     @classmethod
+#     def initialize(cls):
+#         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
+#         cls._table = 'processed_series'
+#         cls._id = None
+#         cls._last_save_time = None
+#         cls._log.debug(f'{cls.__name__} class has been initialized')
+
+
+class FilesTable(Database):
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
-        cls._database = super()._database['processed_files']
+        cls._table = 'files'
         cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
     def search(cls, manga_title, chapter_number):
-        cls._log.debug(f'Searching processed_files cls by keys "series_title" and "chapter_number" '
+        cls._log.debug(f'Searching files cls by keys "series_title" and "chapter_number" '
                        f'using values "{manga_title}" and {chapter_number}')
-        return cls._database.find_one({
-            'series_title': manga_title,
-            'chapter_number': chapter_number
-        })
+        try:
+            lock.acquire(True)
+            results = cls._database.execute(
+                'SELECT * FROM files WHERE series_title = ? AND chapter_number = ?',
+                (manga_title,
+                 chapter_number,))
+            result = results.fetchone()
+        finally:
+            lock.release()
+        return result
+
+    @classmethod
+    def get_by_id(cls, file_id):
+        cls._log.debug(f'Getting details for file id: {file_id}')
+        try:
+            lock.acquire(True)
+            results = cls._database.execute(
+                'SELECT * FROM files WHERE file_id = ?',
+                (file_id,))
+            result = results.fetchone()
+        finally:
+            lock.release()
+        return result
+
+    @classmethod
+    def untagged(cls):
+        cls._log.debug('Getting untagged files.')
+        try:
+            lock.acquire(True)
+            results = cls._database.execute('SELECT file_id FROM files WHERE tagged_date is null')
+        finally:
+            lock.release()
+        return results
 
     @classmethod
     def insert_record_and_rename(cls, old_file_path: Path, new_file_path: Path, manga_title, chapter, logging_info):
-        old_file_path.rename(new_file_path)
-        cls._log.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
 
-        record = {
-            "series_title": manga_title,
-            "chapter_number": chapter,
-            "old_filename": old_file_path.name,
-            "new_filename": new_file_path.name,
-            "process_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
-        }
+        params = (
+            manga_title,
+            chapter,
+            old_file_path.name,
+            new_file_path.name
+        )
 
-        cls._log.debug(f'Record: {record}')
+        cls._log.debug(f'Params: {params}')
 
-        logging_info['inserted_processed_record'] = record
-        cls._database.insert(record, logging_info)
+        logging_info['record_params'] = params
+
+        try:
+            #old_file_path.rename(new_file_path)
+            shutil.move(old_file_path.as_posix(), new_file_path.as_posix())
+        except FileNotFoundError as e:
+            cls._log.exception(f'{old_file_path.as_posix()} not found.')
+
+        try:
+            lock.acquire(True)
+
+            if new_file_path.is_file():
+                cls._log.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.')
+
+                cls._database.execute(
+                    'INSERT INTO files (series_title, chapter_number, old_filename,new_filename, processed_date) '
+                    'VALUES (?, ?, ?, ?, datetime()) ', params)
+            else:
+                cls._log.info(f'"{new_file_path.name.strip(".cbz")}" rename failed.')
+                cls._database.execute(
+                    'INSERT INTO files (series_title, chapter_number, old_filename, new_filename) VALUES (?, ?, ?, ?)',
+                    params)
+
+            cls._client.commit()
+
+            file_id = cls._database.lastrowid
+
+        finally:
+            lock.release()
+
+        cls._log.debug(f'File record added. File ID: {file_id} Params: {params}')
+        return file_id
 
     @classmethod
     def update_record_and_rename(cls, results, old_file_path: Path, new_file_path: Path, logging_info):
-        old_file_path.rename(new_file_path)
-        cls._log.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.', extra=logging_info)
 
-        record = {
-            "$set": {
-                "old_filename": old_file_path.name,
-                "update_date": datetime.now().date().strftime('%Y-%m-%d @ %I:%M:%S %p')
-            }
-        }
-        cls._log.debug(f'Record: {record}')
+        logging_info['updated_processed_record'] = results
 
-        logging_info['updated_processed_record'] = record
-        cls._database.update(results, record, logging_info)
+        try:
+            # old_file_path.rename(new_file_path)
+            shutil.move(old_file_path.resolve().name, new_file_path.resolve().name)
+        except FileNotFoundError as e:
+            cls._log.exception(f'{old_file_path.name} not found.')
 
+        if new_file_path.is_file():
+            cls._log.info(f'"{new_file_path.name.strip(".cbz")}" has been renamed.')
+            try:
+                lock.acquire(True)
+                cls._database.execute(
+                    'UPDATE files SET processed_date = datetime() WHERE file_id = ?', (results['file_id'],))
+                cls._client.commit()
+            finally:
+                lock.release()
+        else:
+            cls._log.info(f'"{new_file_path.name.strip(".cbz")}" rename failed.')
 
-class ProcSeriesTable(Database):
-    processed_series = set()
-
-    @classmethod
-    def initialize(cls):
-        cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
-        cls._database = super()._database['processed_series']
-        cls._id = None
-        cls._last_save_time = None
-        cls._log.debug(f'{cls.__name__} class has been initialized')
+        cls._log.debug(f'File record updated: {results["file_id"]}')
 
     @classmethod
-    def save(cls):
-        cls._log.info('Saving processed series...')
-        cls._database.delete_one({
-            '_id': cls._id
-        })
-        super(ProcSeriesTable, cls).insert(dict.fromkeys(cls.processed_series, True))
+    def add_manga_id(cls, file_id, manga_id):
+        cls._log.info(f'Adding Manga ID: {manga_id} to File ID: {file_id}')
+
+        params = (
+            manga_id,
+            file_id
+        )
+
+        try:
+            lock.acquire(True)
+            cls._database.execute('UPDATE files SET manga_id = ? WHERE file_id = ?', params)
+            cls._client.commit()
+        finally:
+            lock.release()
+        cls._log.debug(f'File record updated: {file_id}')
 
     @classmethod
-    def load(cls):
-        cls._log.info('Loading processed series...')
-        results = cls._database.find_one()
-        if results is not None:
-            cls._id = results.pop('_id')
-            cls.processed_series = set(results.keys())
-
-    @classmethod
-    def save_while_running(cls):
-        if cls._last_save_time is not None:
-            last_save_delta = (datetime.now() - cls._last_save_time).total_seconds()
-
-            # Save every hour
-            if last_save_delta > 3600:
-                cls._last_save_time = datetime.now()
-                cls.save()
+    def add_tagged_date(cls, file_id):
+        cls._log.info(f'Adding tagged date to File ID: {file_id}')
+        try:
+            lock.acquire(True)
+            cls._database.execute('UPDATE files SET tagged_date = datetime() WHERE file_id = ?', (file_id,))
+            cls._client.commit()
+        finally:
+            lock.release()
+        cls._log.debug(f'File record updated: {file_id}')
 
 
 class TaskQueueTable(Database):
     @classmethod
     def initialize(cls):
         cls._log = logging.getLogger(f'{cls.__module__}.{cls.__name__}')
-        cls._database = super()._database['task_queue']
+        cls._table = 'task_queue'
         cls.queue = Queue()
         cls._log.debug(f'{cls.__name__} class has been initialized')
 
     @classmethod
     def load(cls, task_list: dict):
         cls._log.info('Loading task queue...')
-        results = cls._database.find()
+        try:
+            lock.acquire(True)
+            results = cls._database.execute('SELECT * FROM task_queue')
 
-        if results is not None:
-            for result in results:
-                task_list[result['manga_chapter']] = result
+            if results is not None:
+                for result in results.fetchall():
+                    cls._log.info(f'Adding task: {result}')
+                    result['src_path'] = result['src_path'].replace('\\', '/')
+                    task_list[result['manga_chapter']] = result
+        finally:
+            lock.release()
 
     @classmethod
     def save(cls, queue):
@@ -271,8 +401,21 @@ class TaskQueueTable(Database):
             cls._log.info('Saving task queue...')
             while not queue.empty():
                 event = queue.get()
-                super(TaskQueueTable, cls).insert(event.dictionary())
+                cls._log.debug(f'Event: {event}')
+                params = (
+                    event['event_type'],
+                    event['manga_chapter'],
+                    event['src_path'],
+                )
+                try:
+                    lock.acquire(True)
+                    cls._database.execute(
+                        'INSERT INTO task_queue (event_type, manga_chapter, src_path) VALUES (?, ?, ?)',
+                        params)
+                    cls._client.commit()
+                finally:
+                    lock.release()
 
     @classmethod
     def delete_all(cls):
-        super(TaskQueueTable, cls).delete_all(None)
+        super(TaskQueueTable, cls).delete_all(cls._table, None)
