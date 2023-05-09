@@ -30,7 +30,7 @@ class AppSettings:
 
     @classmethod
     def load(cls):
-        settings_location = Path(Path.cwd(), 'settings.json')
+        settings_location = Path(Path.cwd(), '/config/settings.json')
         if Path(settings_location).exists():
             with open(settings_location, 'r') as settings_json:
                 settings = json.load(settings_json)
