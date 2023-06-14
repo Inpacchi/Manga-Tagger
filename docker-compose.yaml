@@ -1,10 +1,7 @@
 services:
   manga-tagger:
-    image: manga-tagger
+    image: sanchoblaze/manga-tagger
     container_name: manga-tagger
-    build:
-      context: .
-      dockerfile: Dockerfile
     volumes:
       - /mnt/d/fmd/library:/library
       - /home/sanchoblaze/projects/python/Manga-Tagger/downloads:/downloads

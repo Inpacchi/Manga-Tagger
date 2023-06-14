@@ -22,4 +22,5 @@ WORKDIR /manga-tagger/
 
 RUN pip install --no-cache -r requirements.txt
 
-RUN python MangaTagger.py
+# RUN python MangaTagger.py
+CMD [ "python", "./MangaTagger.py"]
