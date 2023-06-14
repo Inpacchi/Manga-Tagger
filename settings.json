@@ -1,6 +1,6 @@
 {
 	"application": {
-		"debug_mode": falsegit a,
+		"debug_mode": false,
 		"timezone": "Europe/London",
 		"database_name": "manga_tagger.db",
 		"library_dir": "/library",
