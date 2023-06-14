@@ -1,30 +1,14 @@
 {
 	"application": {
-		"debug_mode": true,
+		"debug_mode": falsegit a,
 		"timezone": "Europe/London",
-		"library": {
-			"dir": "\\mnt\\d\\fmd\\library",
-			"is_network_path": false
-		},
-		"dry_run": {
-			"enabled": false,
-			"rename_file": false,
-			"database_insert": false,
-			"write_comicinfo": false
-		},
+		"database_name": "manga_tagger.db",
+		"library_dir": "/library",
+		"download_dir": "/downloads",
 		"multithreading": {
 			"threads": 8,
 			"max_queue_size": 0
 		}
-	},
-	"database": {
-		"database_name": "manga_tagger.db",
-		"host_address": "localhost",
-		"port": 27017,
-		"username": "manga_tagger",
-		"password": "Manga4LYFE",
-		"auth_source": "admin",
-		"server_selection_timeout_ms": 1
 	},
 	"logger": {
 		"logging_level": "debug",
@@ -55,9 +39,5 @@
 			"port": 1798,
 			"log_format": "%(threadName)s %(thread)d %(asctime)s %(name)s %(levelname)s %(message)s"
 		}
-	},
-	"fmd": {
-		"fmd_dir": "/mnt/d/fmd",
-		"download_dir": "/home/sanchoblaze/projects/python/Manga-Tagger/downloads"
 	}
 }

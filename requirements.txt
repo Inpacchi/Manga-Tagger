@@ -2,7 +2,7 @@ pep517==0.13.0
 watchdog==3.0.0
 numpy==1.24.3
 jikanpy-v4==1.0.2
-requests==2.30.0
+requests==2.31.0
 python_json_logger==2.0.7
 pytz==2023.3
 psutil==5.9.5
