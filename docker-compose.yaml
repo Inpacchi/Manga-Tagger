@@ -3,6 +3,6 @@ services:
     image: sanchoblaze/manga-tagger
     container_name: manga-tagger
     volumes:
-      - /mnt/d/fmd/library:/library
-      - /home/sanchoblaze/projects/python/Manga-Tagger/downloads:/downloads
-      - /home/sanchoblaze/docker/manga-tagger:/config
+      - /path/to/library:/library
+      - /path/to/downloads:/downloads
+      - /path/to/config:/config

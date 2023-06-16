@@ -1,15 +1,11 @@
 import atexit
 import json
 import logging
-import subprocess
 import sys
 from logging.handlers import RotatingFileHandler, SocketHandler
 from pathlib import Path
-
 import numpy
-import psutil
 from pythonjsonlogger import jsonlogger
-
 from MangaTaggerLib.database import Database, FilesTable
 from MangaTaggerLib.task_queue import QueueWorker
 from MangaTaggerLib.api import AniList

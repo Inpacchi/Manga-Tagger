@@ -1,38 +1,50 @@
-![GitHub all releases](https://img.shields.io/github/downloads/Inpacchi/Manga-Tagger/total)
-![GitHub issues](https://img.shields.io/github/issues/Inpacchi/Manga-Tagger)
+![GitHub all releases](https://img.shields.io/github/downloads/sanchoblaze/Manga-Tagger/total) ![GitHub issues](https://img.shields.io/github/issues/sanchoblaze/Manga-Tagger)
 
-![Manga Tagger Logo](images/manga_tagger_logo_cropped.png)
+![Manga Tagger Logo](https://raw.githubusercontent.com/SanchoBlaze/Manga-Tagger/main/images/manga_tagger_logo_cropped.png)
 
-A tool to rename and write metadata to digital manga chapters
-
-## [New alpha build v1.1.5-alpha out now! A LOT of QOL (quality-of-life) changes were made and even though it's an alpha version, you should definitely be using it.](https://github.com/Inpacchi/Manga-Tagger/releases/tag/v1.1.5-alpha) 
-
-## Background and Inspiration
-Where do I even start...well, I **really** enjoy Japanese culture, specifically anime and manga. While there is a lot of support for American comics in a digital format, the same cannot be said about manga. One day, I stumbled across Free Manga Downloader, which allowed me to start my digital manga library. However, the one pitfall of the application is the lack of capability for grabbing metadata.
-
-Being an American comic fan, I regularly use ComicRack and [Comic Tagger](https://github.com/comictagger/comictagger). While Comic Tagger works with manga, it wasn't **made** for manga and so it's implementation in that regard is lackluster. And thus, this project was born...
+A tool to rename and write metadata to digital manga chapters, forked from [Inpacchi/Manga-Tagger](https://github.com/Inpacchi/Manga-Tagger). 
 
 ## Features
-* Direct integration with [Free Manga Downloader 2](https://github.com/dazedcat19/FMD2)
-* Scrapes metadata from [Anilist](https://anilist.co/) and [MyAnimeList](https://myanimelist.net/) (using [Jikan](https://jikan.moe/))
-* Fully automated batch processing
-* Extremely easy integration with [DataDog](https://www.datadoghq.com/) for log monitoring
+* Converted to Docker to so it can be run anywhere.
+* Switched to SQLite instead of MongoDB to increase portability.
+* Point the container at your download and library folder and let it take care of the rest.
+* Scrapes metadata from [Anilist](https://anilist.co/) and [MyAnimeList](https://myanimelist.net/) (using [Jikan](https://jikan.moe/)).
+* Fully automated batch processing.
 * Multithreaded for handling multiple files at a time
 * Writes metadata in the ComicRack format (using comicinfo.xml)
 * Full support for strictly **CBZ** files
 
-## [Installation & Configuration](https://github.com/Inpacchi/Manga-Tagger/wiki/Installation-&-Configuration)
+## Installation & Configuration
+**docker-compose:**
 
-## [Settings](https://github.com/Inpacchi/Manga-Tagger/wiki/Setting-Configuration)
+    services:  
+      manga-tagger:  
+        image: sanchoblaze/manga-tagger  
+        container_name: manga-tagger  
+        volumes:  
+          - /path/to/library:/library  
+          - /path/to/downloads:/downloads  
+          - /path/to/config:/config
+
+**docker cli:**
+
+    docker run -d \
+      --name=manga-tagger \
+      -v /path/to/library:/library \
+      -v /path/to/downloads:/downloads \
+      -v /path/to/config:/config \
+      --restart unless-stopped \
+      sanchoblaze/manga-tagger:latest
+
 
 ## Support
 
-Log issues via [GitHub](https://github.com/ivtechboyinpa/Manga-Tagger/issues)
+Log issues via [GitHub](https://github.com/sanchoblaze/Manga-Tagger/issues)
 
 ## Contributing
 Pull requests are always welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-If you have any questions, please feel free to reach out on our [GitHub Discussions](https://github.com/Inpacchi/Manga-Tagger/discussions).
+If you have any questions, please feel free to reach out on our [GitHub Discussions](https://github.com/sanchoblaze/Manga-Tagger/discussions).
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
