@@ -47,3 +47,4 @@ jobs:
          with:
            push: true
            tags: ${{ steps.meta.outputs.tags }}
+                 sanchoblaze/manga-tagger:latest

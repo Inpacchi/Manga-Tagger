@@ -22,7 +22,7 @@ from MangaTaggerLib.utils import AppSettings, compare
 # Global Variable Declaration
 LOG = logging.getLogger('MangaTaggerLib.MangaTaggerLib')
 
-#CURRENTLY_PENDING_DB_SEARCH = set()
+# CURRENTLY_PENDING_DB_SEARCH = set()
 CURRENTLY_PENDING_RENAME = set()
 
 
@@ -351,7 +351,7 @@ def metadata_tagger(manga_title, manga_chapter_number, logging_info, file_id, ma
         manga_found = False
         try:
             for result in manga_search['data']:
-                if result['type'].lower() == 'manga':
+                if result['type'].lower() == 'manga' or result['type'].lower() == 'one-shot':
                     mal_id = result['mal_id']
                     anilist_results = AniList.search_for_manga_title_by_mal_id(mal_id, logging_info)
                     if anilist_results is None:

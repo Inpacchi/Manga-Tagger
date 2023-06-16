@@ -1,4 +1,4 @@
-![GitHub all releases](https://img.shields.io/github/downloads/sanchoblaze/Manga-Tagger/total) ![GitHub issues](https://img.shields.io/github/issues/sanchoblaze/Manga-Tagger)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/SanchoBlaze/Manga-Tagger?label=latest)  ![GitHub issues](https://img.shields.io/github/issues/sanchoblaze/Manga-Tagger) ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/SanchoBlaze/Manga-Tagger/docker-hub.yml) ![Docker Pulls](https://img.shields.io/docker/pulls/sanchoblaze/manga-tagger) ![GitHub all releases](https://img.shields.io/github/downloads/SanchoBlaze/Manga-Tagger/total)
 
 ![Manga Tagger Logo](https://raw.githubusercontent.com/SanchoBlaze/Manga-Tagger/main/images/manga_tagger_logo_cropped.png)
 
@@ -14,7 +14,7 @@ A tool to rename and write metadata to digital manga chapters, forked from [Inpa
 * Writes metadata in the ComicRack format (using comicinfo.xml)
 * Full support for strictly **CBZ** files
 
-## Installation & Configuration
+## Installation
 **docker-compose:**
 
     services:  
@@ -35,6 +35,18 @@ A tool to rename and write metadata to digital manga chapters, forked from [Inpa
       -v /path/to/config:/config \
       --restart unless-stopped \
       sanchoblaze/manga-tagger:latest
+
+## File Naming
+
+Files to be processed, should be named in the format:
+
+> MANGA -.- CHAPTER
+
+For example:
+> Akira -.- Chapter 001.cbz
+
+This will be renamed to
+> Akira 001.cbz
 
 
 ## Support
