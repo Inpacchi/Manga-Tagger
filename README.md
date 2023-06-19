@@ -1,4 +1,6 @@
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/SanchoBlaze/Manga-Tagger?label=latest)  ![GitHub issues](https://img.shields.io/github/issues/sanchoblaze/Manga-Tagger) ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/SanchoBlaze/Manga-Tagger/docker-hub.yml) ![Docker Pulls](https://img.shields.io/docker/pulls/sanchoblaze/manga-tagger) ![GitHub all releases](https://img.shields.io/github/downloads/SanchoBlaze/Manga-Tagger/total)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/SanchoBlaze/Manga-Tagger?label=latest)  ![GitHub issues](https://img.shields.io/github/issues/sanchoblaze/Manga-Tagger) 
+![Docker Cloud Build Status](https://img.shields.io/docker/cloud/build/sanchoblaze/manga-tagger)
+ ![Docker Pulls](https://img.shields.io/docker/pulls/sanchoblaze/manga-tagger) ![GitHub all releases](https://img.shields.io/github/downloads/SanchoBlaze/Manga-Tagger/total)
 
 ![Manga Tagger Logo](https://raw.githubusercontent.com/SanchoBlaze/Manga-Tagger/main/images/manga_tagger_logo_cropped.png)
 
