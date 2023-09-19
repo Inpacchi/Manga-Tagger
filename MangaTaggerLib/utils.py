@@ -2,6 +2,7 @@ import atexit
 import json
 import logging
 import sys
+import os
 from logging.handlers import RotatingFileHandler, SocketHandler
 from pathlib import Path
 import numpy
@@ -61,7 +62,11 @@ class AppSettings:
 
         # Multithreading Configuration
         if settings['application']['multithreading']['threads'] <= 0:
-            QueueWorker.threads = 1
+            cpus = os.cpu_count() / 2
+            if cpus:
+                QueueWorker.threads = cpus
+            else:
+                QueueWorker.threads = 1
         else:
             QueueWorker.threads = settings['application']['multithreading']['threads']
 
