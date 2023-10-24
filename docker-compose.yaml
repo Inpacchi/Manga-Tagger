@@ -1,0 +1,8 @@
+services:
+  manga-tagger:
+    image: sanchoblaze/manga-tagger
+    container_name: manga-tagger
+    volumes:
+      - /path/to/library:/library
+      - /path/to/downloads:/downloads
+      - /path/to/config:/config

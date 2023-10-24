@@ -1,38 +1,22 @@
 {
 	"application": {
-		"debug_mode": true,
-		"timezone": "America/New_York",
-		"library": {
-			"dir": "C:\\Library",
-			"is_network_path": false
-		},
-		"dry_run": {
-			"enabled": false,
-			"rename_file": false,
-			"database_insert": false,
-			"write_comicinfo": false
-		},
+		"debug_mode": false,
+		"timezone": "Europe/London",
+		"database_name": "manga_tagger.db",
+		"library_dir": "/library",
+		"download_dir": "/downloads",
 		"multithreading": {
 			"threads": 8,
 			"max_queue_size": 0
 		}
 	},
-	"database": {
-		"database_name": "manga_tagger",
-		"host_address": "localhost",
-		"port": 27017,
-		"username": "manga_tagger",
-		"password": "Manga4LYFE",
-		"auth_source": "admin",
-		"server_selection_timeout_ms": 1
-	},
 	"logger": {
-		"logging_level": "info",
+		"logging_level": "debug",
 		"log_dir": "logs",
 		"max_size": 10485760,
 		"backup_count": 5,
 		"console": {
-			"enabled": false,
+			"enabled": true,
 			"log_format": "%(asctime)s | %(threadName)s %(thread)d | %(name)s | %(levelname)s - %(message)s"
 		},
 		"file": {
@@ -55,9 +39,5 @@
 			"port": 1798,
 			"log_format": "%(threadName)s %(thread)d %(asctime)s %(name)s %(levelname)s %(message)s"
 		}
-	},
-	"fmd": {
-		"fmd_dir": "C:\\Free Manga Downloader",
-		"download_dir": null
 	}
 }

@@ -3,7 +3,7 @@ name: Issue
 about: Log bugs found while using Manga Tagger
 title: "[BUG]"
 labels: bug
-assignees: Inpacchi
+assignees: sanchoblaze
 
 ---
 
